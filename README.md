@@ -10,7 +10,7 @@
 - **🔍 Smart Search & AI Mode:** Instant Google search suggestions with keyboard navigation, custom search engines, voice search, and an AI Mode that routes queries directly to Google AI, Google Gemini, ChatGPT, or Perplexity.
 - **📁 Full Bookmarks Manager:** Integrated sidebar with folder tree browsing, bookmark search, custom context menus (open, edit, copy, delete), and seamless sync with Chrome's native bookmark database.
 - **👤 Google Account Avatar Sync:** Seamlessly detects and syncs your Google profile avatar, or lets you upload your own custom profile picture.
-- **🌤️ Live Weather:** Real-time weather conditions and forecasts powered by Open-Meteo (no API keys required, privacy-respecting, auto-geolocation or manual search).
+- **🌤️ Live Weather & UV Index Hub:** Real-time weather conditions, 24-hour forecast track, live UV index gauge with daylight UV sparkline curve, sun protection window, and customizable safe sun exposure calculator powered by Open-Meteo (privacy-respecting, zero API keys required).
 - **⏱️ Header & Lockscreen Clock:** Digital and analog clock modes with 12/24-hour toggle, live seconds, localized date strings, and 8 curated typography choices (Outfit, Inter, Space Grotesk, Orbitron, Urbanist, and more).
 - **🖼️ 4K Wallpapers & Uploads:** Curated collection of high-resolution nature and abstract wallpapers, automatic daily rotation, or custom wallpaper upload with built-in blur, dim, and brightness controls.
 - **⚡ Speed-Dial Shortcuts:** Drag-and-drop shortcuts grid with official brand SVGs, automatic high-res favicons, and optional Chrome Top Sites.

@@ -311,6 +311,8 @@ const Settings = (() => {
         _rowStacked('', _dataButtons()),
         _rowStacked('', _privacyNote()),
       ]));
+
+      container.appendChild(_brandFooterStamp());
     }
   }
 
@@ -321,26 +323,26 @@ const Settings = (() => {
     wrap.className = 'settings-top-actions';
 
     const gh = document.createElement('a');
-    gh.className = 'settings-pill-btn settings-btn-github';
+    gh.className = 'settings-pill-btn';
     gh.href = 'https://github.com/UdithaAnuhas/AuraTab';
     gh.target = '_blank';
     gh.rel = 'noopener noreferrer';
     gh.title = 'Star AuraTab on GitHub';
     gh.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24">
-        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
       </svg>
       <span>GitHub</span>
     `;
 
     const pf = document.createElement('a');
-    pf.className = 'settings-pill-btn settings-btn-portfolio';
+    pf.className = 'settings-pill-btn';
     pf.href = 'https://uditha-anuhas.vercel.app/';
     pf.target = '_blank';
     pf.rel = 'noopener noreferrer';
     pf.title = 'Visit Developer Portfolio';
     pf.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="2" y1="12" x2="22" y2="12"></line>
         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
@@ -349,14 +351,14 @@ const Settings = (() => {
     `;
 
     const fb = document.createElement('a');
-    fb.className = 'settings-pill-btn settings-btn-feedback';
+    fb.className = 'settings-pill-btn';
     fb.href = 'feedback.html';
     fb.target = '_blank';
     fb.rel = 'noopener noreferrer';
     fb.title = 'Send Feedback';
     fb.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#c084fc">
-        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-6.5 9c-.83 0-1.5-.67-1.5-1.5S12.67 8 13.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-5 0c-.83 0-1.5-.67-1.5-1.5S7.67 8 8.5 8 10 8.67 10 9.5 9.33 11 8.5 11z"/>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
       </svg>
       <span>Feedback</span>
     `;
@@ -1459,6 +1461,19 @@ const Settings = (() => {
     return p;
   }
 
+  function _brandFooterStamp() {
+    const wrap = document.createElement('div');
+    wrap.className = 'settings-brand-footer';
+    wrap.innerHTML = `
+      <div class="settings-brand-footer-inner">
+        <span class="settings-brand-footer-name">AuraTab</span>
+        <span class="settings-brand-footer-dot">•</span>
+        <span class="settings-brand-footer-version">v1.1.0</span>
+      </div>
+    `;
+    return wrap;
+  }
+
   function _showShortcutsOrganizer() {
     const body = document.getElementById('settings-body');
     if (!body) return;
@@ -1849,7 +1864,7 @@ const Settings = (() => {
           }
 
           // Check if the click target is a button that opens this panel
-          const openers = ['btn-settings', 'btn-todo', 'btn-bookmarks'];
+          const openers = ['btn-settings', 'btn-todo', 'btn-bookmarks', 'weather-widget'];
           const isOpener = openers.some(id => {
             const el = document.getElementById(id);
             return el && (el === e.target || el.contains(e.target));

@@ -103,8 +103,15 @@
   --tone-100: #ffffff;
 }
 
+/* Theme color schemes */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+}
+
 /* Dark mode tokens */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0a0a14;
   --surface: rgba(30, 30, 50, 0.65);
   --surface-hover: rgba(40, 40, 65, 0.8);
@@ -374,6 +381,125 @@ body {
   color: rgba(255, 255, 255, 0.65);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
   letter-spacing: 0.15px;
+}
+
+.weather-compact-uv-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weather-compact-dot {
+  opacity: 0.55;
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0 1px;
+  user-select: none;
+}
+
+.weather-compact-uv {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+  letter-spacing: -0.01em;
+  transition: color 0.3s ease;
+  user-select: none;
+}
+
+.weather-compact-uv-level {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: color 0.3s ease;
+  user-select: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="light"] .weather-compact-top {
+  color: #0f172a;
+  text-shadow: none;
+}
+
+[data-theme="light"] .weather-compact-location {
+  color: #64748b;
+  text-shadow: none;
+}
+
+[data-theme="light"] .weather-compact-dot {
+  color: rgba(15, 23, 42, 0.4);
+}
+
+[data-theme="light"] .weather-compact-uv {
+  color: #475569;
+  text-shadow: none;
+}
+
+[data-theme="light"] .weather-compact-uv-level {
+  text-shadow: none;
+}
+
+[data-theme="light"] .weather-compact-card:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Hover-Reveal Quick Refresh Button on Homescreen Weather Widget */
+.weather-quick-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  margin-left: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.weather-compact-card:hover .weather-quick-refresh-btn,
+.weather-compact-card:focus-within .weather-quick-refresh-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.weather-quick-refresh-btn:hover {
+  background: rgba(var(--accent-rgb, 99, 102, 241), 0.35);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.weather-quick-refresh-btn:active {
+  transform: scale(0.92);
+}
+
+.weather-quick-refresh-btn.spin svg {
+  animation: spinQuick 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes spinQuick {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+[data-theme="light"] .weather-quick-refresh-btn {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.14);
+  color: #0f172a;
+}
+
+[data-theme="light"] .weather-quick-refresh-btn:hover {
+  background: rgba(var(--accent-rgb, 99, 102, 241), 0.16);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .header-clock-widget {

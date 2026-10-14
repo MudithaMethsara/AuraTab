@@ -149,8 +149,73 @@
   z-index: 2;
 }
 
-.settings-panel .panel-header h2 {
+.settings-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+  position: relative;
+  z-index: 5;
+}
+
+.settings-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.settings-brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px rgba(var(--accent-rgb, 99, 102, 241), 0.35));
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.settings-panel:hover .settings-brand-icon {
+  transform: rotate(15deg) scale(1.08);
+}
+
+.settings-panel .panel-header h2,
+.settings-panel .settings-brand-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--settings-text-primary);
+  line-height: 1.2;
+}
+
+.settings-brand-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb, 99, 102, 241), 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(var(--accent-rgb, 99, 102, 241), 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  line-height: 1.3;
+}
+
+[data-theme="light"] .settings-brand-badge {
+  background: rgba(var(--accent-rgb, 99, 102, 241), 0.14);
+  border-color: rgba(var(--accent-rgb, 99, 102, 241), 0.35);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] .settings-brand-badge {
+    background: rgba(var(--accent-rgb, 99, 102, 241), 0.14);
+    border-color: rgba(var(--accent-rgb, 99, 102, 241), 0.35);
+    color: #0f172a;
+    font-weight: 600;
+  }
 }
 
 .settings-panel .popover-close {
@@ -289,7 +354,7 @@
   animation: fadeIn var(--duration) var(--ease) both;
 }
 
-/* Top Action Pill Buttons */
+/* Top Action Pill Buttons - Professional Frosted Glass */
 .settings-top-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -303,18 +368,43 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  color: #ffffff;
-  padding: 10px 8px;
+  padding: 8px 10px;
   border-radius: var(--radius-md, 12px);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--settings-text-primary);
+  font-family: var(--font);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   white-space: nowrap;
   box-sizing: border-box;
-  position: relative;
-  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.2s var(--ease);
+}
+
+[data-theme="light"] .settings-pill-btn {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.09);
+  color: var(--settings-text-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.settings-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--settings-text-primary);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="light"] .settings-pill-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .settings-pill-btn:active {
@@ -323,82 +413,15 @@
 
 .settings-pill-btn svg {
   flex-shrink: 0;
-  transition: transform 0.25s ease;
+  width: 15px;
+  height: 15px;
+  color: var(--settings-text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .settings-pill-btn:hover svg {
-  transform: scale(1.15);
-}
-
-/* GitHub Glowing Button */
-.settings-btn-github {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.14) 0%, rgba(245, 158, 11, 0.05) 100%);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  box-shadow: 0 2px 10px rgba(251, 191, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.settings-btn-github svg {
-  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.65));
-}
-
-.settings-btn-github:hover {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.24) 0%, rgba(245, 158, 11, 0.12) 100%);
-  border-color: rgba(251, 191, 36, 0.65);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* Portfolio Glowing Button */
-.settings-btn-portfolio {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(14, 165, 233, 0.05) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.settings-btn-portfolio svg {
-  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.65));
-}
-
-.settings-btn-portfolio:hover {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.24) 0%, rgba(14, 165, 233, 0.12) 100%);
-  border-color: rgba(56, 189, 248, 0.65);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* Feedback Glowing Button */
-.settings-btn-feedback {
-  background: linear-gradient(135deg, rgba(192, 132, 252, 0.14) 0%, rgba(168, 85, 247, 0.05) 100%);
-  border: 1px solid rgba(192, 132, 252, 0.3);
-  box-shadow: 0 2px 10px rgba(192, 132, 252, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.settings-btn-feedback svg {
-  filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.65));
-}
-
-.settings-btn-feedback:hover {
-  background: linear-gradient(135deg, rgba(192, 132, 252, 0.24) 0%, rgba(168, 85, 247, 0.12) 100%);
-  border-color: rgba(192, 132, 252, 0.65);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(192, 132, 252, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* Light Theme Adjustments */
-[data-theme="light"] .settings-btn-github {
-  color: #854d0e;
-  border-color: rgba(234, 179, 8, 0.4);
-}
-[data-theme="light"] .settings-btn-portfolio {
-  color: #0369a1;
-  border-color: rgba(14, 165, 233, 0.4);
-}
-[data-theme="light"] .settings-btn-feedback {
-  color: #6b21a8;
-  border-color: rgba(168, 85, 247, 0.4);
+  color: var(--accent);
+  transform: scale(1.1);
 }
 
 /* Card Section Wrapper - Frosted Glass Container */
@@ -783,34 +806,70 @@
 /* Select */
 .settings-select {
   padding: 8px 32px 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-md);
-  background-color: rgba(255, 255, 255, 0.045);
+  background-color: rgba(255, 255, 255, 0.05);
   color: var(--settings-text-primary);
   font-family: var(--font);
   font-size: var(--fs-sm);
   cursor: pointer;
   outline: none;
-  min-width: 125px;
+  min-width: 130px;
   -webkit-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  color-scheme: dark;
   transition: all var(--duration) var(--ease);
 }
 
 [data-theme="light"] .settings-select {
   background-color: rgba(255, 255, 255, 0.7);
   border-color: rgba(0, 0, 0, 0.12);
+  color-scheme: light;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 .settings-select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 99, 102, 241), 0.25), 0 0 14px rgba(var(--accent-rgb, 99, 102, 241), 0.15);
-  background-color: rgba(var(--accent-rgb, 99, 102, 241), 0.08);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* Dropdown option items */
+.settings-select option {
+  background-color: #161b2c !important;
+  color: #f1f3f9 !important;
+  padding: 10px 14px;
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+[data-theme="light"] .settings-select option {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] .settings-select {
+    color-scheme: dark;
+  }
+  [data-theme="auto"] .settings-select option {
+    background-color: #161b2c !important;
+    color: #f1f3f9 !important;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] .settings-select {
+    color-scheme: light;
+  }
+  [data-theme="auto"] .settings-select option {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
 }
 
 /* Inputs in settings */
@@ -1782,3 +1841,41 @@
   animation: spin 1s linear infinite;
 }
 
+/* Subtle AuraTab Footer Stamp in System Tab */
+.settings-brand-footer {
+  margin-top: 24px;
+  padding: 16px 0 10px;
+  text-align: center;
+  user-select: none;
+}
+
+.settings-brand-footer-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--settings-text-muted, rgba(255, 255, 255, 0.45));
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+}
+
+.settings-brand-footer-inner:hover {
+  opacity: 1;
+}
+
+.settings-brand-footer-name {
+  font-weight: 600;
+  color: var(--settings-text-secondary, rgba(255, 255, 255, 0.7));
+}
+
+.settings-brand-footer-dot {
+  opacity: 0.4;
+  font-size: 0.55rem;
+}
+
+.settings-brand-footer-version {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
