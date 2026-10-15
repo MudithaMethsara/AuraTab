@@ -245,10 +245,18 @@ const Search = (() => {
     }
   }
 
+  let activeSuggestionRequestId = 0;
+
   function _closeMenu() {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = null;
+    activeSuggestionRequestId++; // Invalidate all in-flight suggestion promises
+
     const menu = document.getElementById('search-dropdown-menu');
     const box = document.getElementById('search-box');
     const wrap = document.getElementById('search-box-wrap');
+    const input = document.getElementById('search-input');
+
     if (menu) {
       menu.style.display = 'none';
       menu.style.maxHeight = '';
@@ -256,12 +264,18 @@ const Search = (() => {
     const listEl = document.getElementById('search-suggestions-list');
     if (listEl) {
       listEl.style.maxHeight = '';
+      listEl.innerHTML = '';
     }
     if (box) box.classList.remove('has-dropdown-open');
     if (wrap) wrap.classList.remove('has-dropdown-open');
     document.body.classList.remove('search-dropdown-active');
     menuOpen = false;
     selectedIndex = -1;
+
+    // Remove active text cursor / focus so search box cleanly returns to idle pill
+    if (input && document.activeElement === input) {
+      input.blur();
+    }
   }
 
   function _adjustDropdownMaxHeight() {
@@ -301,9 +315,11 @@ const Search = (() => {
   }
 
   async function _renderSuggestions(rawQuery) {
+    if (!menuOpen) return;
     const listEl = document.getElementById('search-suggestions-list');
     if (!listEl) return;
 
+    const requestId = ++activeSuggestionRequestId;
     const query = (rawQuery || '').trim().toLowerCase();
     let items = [];
 
@@ -319,6 +335,8 @@ const Search = (() => {
       try {
         googleSuggestions = await _fetchGoogleSuggestions(query);
       } catch (_) {}
+
+      if (!menuOpen || requestId !== activeSuggestionRequestId) return;
 
       const topCompletion = googleSuggestions.find(s => s.toLowerCase().startsWith(query)) || rawQuery.trim();
 
@@ -376,6 +394,8 @@ const Search = (() => {
           googleSuggestions = await _fetchGoogleSuggestions(query);
         } catch (_) {}
 
+        if (!menuOpen || requestId !== activeSuggestionRequestId) return;
+
         const historyMatches = searchHistory
           .filter(h => h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query)
           .slice(0, 2)
@@ -411,6 +431,8 @@ const Search = (() => {
         selectedIndex = -1;
       }
     }
+
+    if (!menuOpen || requestId !== activeSuggestionRequestId) return;
 
     currentSuggestions = items;
 
@@ -538,7 +560,9 @@ const Search = (() => {
       clearHistoryBtn.style.display = (!query && searchHistory.length > 0) ? 'inline-block' : 'none';
     }
 
-    _adjustDropdownMaxHeight();
+    if (menuOpen && requestId === activeSuggestionRequestId) {
+      _adjustDropdownMaxHeight();
+    }
   }
 
   function _executeSearch(query, itemIsAi) {
@@ -1122,13 +1146,17 @@ const Search = (() => {
     _setupImageSearch();
     _setupAddMenu();
 
-    // Close on click outside
-    document.addEventListener('click', (e) => {
+    // Close on click/tap outside (capture phase so stopPropagation elsewhere cannot swallow it)
+    const handleOutsideDismiss = (e) => {
       if (searchWrap && !searchWrap.contains(e.target)) {
-        _closeMenu();
-        _closeEngineDropdown();
+        if (menuOpen || engineDropdownOpen) {
+          _closeMenu();
+          _closeEngineDropdown();
+        }
       }
-    });
+    };
+    document.addEventListener('pointerdown', handleOutsideDismiss, true);
+    document.addEventListener('click', handleOutsideDismiss, true);
 
     // Auto-adjust dropdown height on window resize
     window.addEventListener('resize', () => {
