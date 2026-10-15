@@ -236,6 +236,11 @@ const Search = (() => {
     menuOpen = true;
     _adjustDropdownMaxHeight();
     _renderSuggestions(input ? input.value : '');
+
+    // Ensure input retains active focus and blinking text cursor
+    if (input && document.activeElement !== input) {
+      input.focus();
+    }
   }
 
   function _closeMenu() {
@@ -904,13 +909,20 @@ const Search = (() => {
     if (searchBoxEl) {
       searchBoxEl.addEventListener('mousedown', (e) => {
         if (!e.target.closest('button') && !e.target.closest('.search-add-menu')) {
-          if (input && document.activeElement !== input) {
-            // Prevent default to avoid stealing focus if we just want to focus it manually
-            // Wait, if we prevent default, the input won't get focused natively. Let's just focus it.
-            // Actually, we don't need prevent default.
+          if (e.target !== input) {
+            // Prevent container div from stealing focus away from input
+            e.preventDefault();
             input.focus();
           }
           if (!menuOpen) _openMenu();
+        }
+      });
+
+      searchBoxEl.addEventListener('click', (e) => {
+        if (!e.target.closest('button') && !e.target.closest('.search-add-menu')) {
+          if (input && document.activeElement !== input) {
+            input.focus();
+          }
         }
       });
     }
@@ -920,7 +932,7 @@ const Search = (() => {
       _openMenu();
     });
 
-    input.addEventListener('mousedown', () => {
+    input.addEventListener('click', () => {
       if (!menuOpen) _openMenu();
     });
 

@@ -414,6 +414,7 @@ body.search-dropdown-active .bottom-bar {
   width: 100%;
   box-sizing: border-box;
   position: relative;
+  cursor: text;
 }
 
 .search-box:not(.has-dropdown-open):hover {
@@ -643,6 +644,7 @@ body.search-dropdown-active .bottom-bar {
 
 .search-input {
   flex: 1;
+  height: 100%;
   border: none;
   background: transparent;
   font-size: 15px;
@@ -654,6 +656,7 @@ body.search-dropdown-active .bottom-bar {
   font-family: var(--font);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   transition: color 0.15s ease, text-shadow 0.15s ease;
+  cursor: text;
 }
 
 .search-input::selection {
