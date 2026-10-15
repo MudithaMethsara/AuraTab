@@ -101,6 +101,7 @@ const Search = (() => {
     _saveHistory();
     const input = document.getElementById('search-input');
     _renderSuggestions(input ? input.value : '');
+    if (input) input.focus();
   }
 
   function _clearHistory() {
@@ -108,6 +109,7 @@ const Search = (() => {
     _saveHistory();
     const input = document.getElementById('search-input');
     _renderSuggestions(input ? input.value : '');
+    if (input) input.focus();
   }
 
   function _updateIcon() {
@@ -340,14 +342,33 @@ const Search = (() => {
       items = [topItem, ...otherItems].slice(0, 8);
       selectedIndex = -1;
     } else {
-      // Standard search mode: Show history and Google suggestions
+      // Standard search mode: Show history or popular suggestions
       if (!query) {
-        items = searchHistory.slice(0, 8).map(h => ({
-          query: h.query,
-          sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
-          isAi: h.isAi,
-          type: 'history'
-        }));
+        if (searchHistory.length > 0) {
+          items = searchHistory.slice(0, 8).map(h => ({
+            query: h.query,
+            sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
+            isAi: h.isAi,
+            type: 'history'
+          }));
+        } else {
+          // When history is empty, show popular search shortcuts so omnibox activates reliably
+          const popularDefaults = [
+            'YouTube',
+            'Google Translate',
+            'Weather',
+            'Google Maps',
+            'GitHub',
+            'ChatGPT',
+            'News'
+          ];
+          items = popularDefaults.map(term => ({
+            query: term,
+            sub: currentEngine === 'google' ? 'Popular' : `${currentEngine.toUpperCase()} Search`,
+            isAi: false,
+            type: 'suggest'
+          }));
+        }
         selectedIndex = -1;
       } else {
         let googleSuggestions = [];
@@ -510,6 +531,12 @@ const Search = (() => {
 
       listEl.appendChild(btn);
     });
+
+    // Only show Clear history button in footer if there is active history and input is empty
+    const clearHistoryBtn = document.getElementById('btn-clear-history');
+    if (clearHistoryBtn) {
+      clearHistoryBtn.style.display = (!query && searchHistory.length > 0) ? 'inline-block' : 'none';
+    }
 
     _adjustDropdownMaxHeight();
   }
@@ -940,10 +967,13 @@ const Search = (() => {
     input.addEventListener('input', () => {
       originalUserTyped = input.value;
 
+      if (!menuOpen) {
+        _openMenu();
+      }
+
       clearTimeout(debounceTimeout);
       debounceTimeout = setTimeout(() => {
         _renderSuggestions(originalUserTyped);
-        if (!menuOpen) _openMenu();
       }, 100);
     });
 
