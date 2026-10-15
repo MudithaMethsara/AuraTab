@@ -16,33 +16,73 @@ const Search = (() => {
   const DEFAULT_HISTORY = [
     { query: 'tiktok', sub: 'Google Search', isAi: false },
     { query: 'usdt to lkr', sub: '', isAi: false },
-    { query: 'muditha methsara', sub: '', isAi: true },
+    { query: 'muditha methsara', sub: 'AI Mode History', isAi: true },
+    { query: 'how does quantum computing work', sub: 'AI Mode History', isAi: true },
     { query: 'mynt extension', sub: '', isAi: false },
     { query: 'custom home tab reddit', sub: '', isAi: false },
     { query: 'translate', sub: '', isAi: false },
+    { query: 'compare next.js vs vite in 2026', sub: 'AI Mode History', isAi: true },
     { query: 'home tab glass look design', sub: '', isAi: false },
     { query: 'anime wallpapers 4k', sub: '', isAi: false },
+  ];
+
+  const DEFAULT_AI_PROMPTS = [
+    'Explain quantum computing simply',
+    'Write a python script to parse JSON',
+    'Summarize the latest tech news this week',
+    'Compare Next.js vs Vite React in 2026',
+    'Ideas for healthy quick dinner recipes',
+    'How do black holes form in space',
   ];
 
   const ICON_HISTORY = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>`;
   const ICON_SEARCH = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
   const ICON_AI_SPARKLE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`;
+  const ICON_TRENDING = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`;
+
+  const DEFAULT_TRENDING = [
+    'ChatGPT',
+    'World News',
+    'Premier League',
+    'James Webb Space Telescope',
+    'Google Gemini AI',
+    'Stock Market Today',
+    'SpaceX Starship',
+    'Anime 2026',
+    'Weather Forecast',
+    'GitHub Trending',
+  ];
+
+  const DEFAULT_TRENDING_BY_GEO = {
+    'LK': ['Sri Lanka Cricket', 'Colombo Weather', 'Gold Price in Sri Lanka', 'USDT to LKR', 'Dialog Axiata', 'World News', 'Tech News'],
+    'IN': ['Cricket Live Score', 'Stock Market Today', 'Weather Forecast', 'ChatGPT', 'Gold Rate Today', 'Tech News', 'World Cup'],
+    'GB': ['BBC News', 'Premier League', 'Weather UK', 'Champions League', 'Formula 1', 'ChatGPT', 'Sky Sports'],
+    'US': ['ChatGPT', 'World News', 'Premier League', 'James Webb Space Telescope', 'Google Gemini AI', 'Stock Market Today', 'SpaceX Starship'],
+    'CA': ['NHL Scores', 'Canada Weather', 'CBC News', 'ChatGPT', 'Stock Market Today', 'Tech News'],
+    'AU': ['AFL Scores', 'ABC News Australia', 'Australia Weather', 'ChatGPT', 'Cricket Live', 'Tech News'],
+  };
 
   let currentEngine = 'google';
   let customUrl = '';
   let engineDropdownOpen = false;
   let menuOpen = false;
   let isAiMode = false;
+  let isFrostedOmnibox = true;
+  let trendingRegion = 'auto';
   let searchHistory = [];
   let currentSuggestions = [];
   let selectedIndex = -1;
   let debounceTimeout = null;
   let originalUserTyped = '';
+  let cachedTrending = null;
+  let lastTrendingFetchTime = 0;
 
   async function init() {
-    const data = await Storage.getSync(['searchEngine', 'customSearchUrl']);
+    const data = await Storage.getSync(['searchEngine', 'customSearchUrl', 'frostedOmnibox', 'trendingRegion']);
     currentEngine = data.searchEngine || 'google';
     customUrl = data.customSearchUrl || '';
+    isFrostedOmnibox = typeof data.frostedOmnibox === 'boolean' ? data.frostedOmnibox : true;
+    trendingRegion = data.trendingRegion || 'auto';
 
     // Always start in normal mode on new tabs until user turns on AI mode
     isAiMode = false;
@@ -55,8 +95,21 @@ const Search = (() => {
 
     _updateIcon();
     _updateAiModeUI();
+    _updateFrostedOmniboxUI();
     _buildEngineDropdown();
     _setupListeners();
+  }
+
+  function _updateFrostedOmniboxUI() {
+    const wrap = document.getElementById('search-box-wrap');
+    if (wrap) {
+      wrap.classList.toggle('frosted-omnibox-enabled', !!isFrostedOmnibox);
+    }
+  }
+
+  function setFrostedOmnibox(val) {
+    isFrostedOmnibox = !!val;
+    _updateFrostedOmniboxUI();
   }
 
   function _loadHistory() {
@@ -89,7 +142,7 @@ const Search = (() => {
     // Prepend new
     searchHistory.unshift({
       query: cleanQuery,
-      sub: isAi ? '' : (currentEngine === 'google' ? 'Google Search' : ''),
+      sub: isAi ? 'AI Mode History' : (currentEngine === 'google' ? 'Google Search' : ''),
       isAi: !!isAi,
       timestamp: Date.now()
     });
@@ -110,6 +163,17 @@ const Search = (() => {
     const input = document.getElementById('search-input');
     _renderSuggestions(input ? input.value : '');
     if (input) input.focus();
+  }
+
+  function _clearAiHistory() {
+    searchHistory = searchHistory.filter(h => !h.isAi);
+    _saveHistory();
+    const input = document.getElementById('search-input');
+    _renderSuggestions(input ? input.value : '');
+    if (input) input.focus();
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast('AI Mode history cleared');
+    }
   }
 
   function _updateIcon() {
@@ -155,13 +219,17 @@ const Search = (() => {
       input.placeholder = isAiMode ? 'Ask AI Mode anything or type a prompt...' : 'Search Google or type a URL';
     }
 
-    // 5. Always ensure dropdown is closed on mode change so it never automatically pops up
-    _closeMenu();
+    // 5. Update dropdown suggestions if menu is open or input is focused
+    if (menuOpen || (input && document.activeElement === input)) {
+      _renderSuggestions(input ? input.value : '');
+    }
   }
 
   function _toggleAiMode() {
     isAiMode = !isAiMode;
     _updateAiModeUI();
+    const input = document.getElementById('search-input');
+    if (input) input.focus();
     if (typeof App !== 'undefined' && App.showToast) {
       App.showToast(isAiMode ? 'AI Search Mode enabled' : 'Standard Search Mode');
     }
@@ -217,16 +285,19 @@ const Search = (() => {
     engineDropdownOpen = false;
   }
 
+  function _hideShortcuts() {
+    document.body.classList.add('search-active');
+    const shortcutsWidget = document.getElementById('shortcuts-widget');
+    if (shortcutsWidget) shortcutsWidget.classList.add('search-hidden');
+  }
+
+  function _showShortcuts() {
+    document.body.classList.remove('search-active');
+    const shortcutsWidget = document.getElementById('shortcuts-widget');
+    if (shortcutsWidget) shortcutsWidget.classList.remove('search-hidden');
+  }
+
   function _openMenu() {
-    const input = document.getElementById('search-input');
-    const query = (input ? input.value : '').trim();
-
-    // When in AI mode and search box is empty, never open history menu
-    if (isAiMode && !query) {
-      _closeMenu();
-      return;
-    }
-
     _closeEngineDropdown();
     const menu = document.getElementById('search-dropdown-menu');
     const box = document.getElementById('search-box');
@@ -235,8 +306,10 @@ const Search = (() => {
     if (box) box.classList.add('has-dropdown-open');
     if (wrap) wrap.classList.add('has-dropdown-open');
     document.body.classList.add('search-dropdown-active');
+    _hideShortcuts();
     menuOpen = true;
     _adjustDropdownMaxHeight();
+    const input = document.getElementById('search-input');
     _renderSuggestions(input ? input.value : '');
 
     // Ensure input retains active focus and blinking text cursor
@@ -247,6 +320,8 @@ const Search = (() => {
 
   let activeSuggestionRequestId = 0;
 
+  const suggestionsMemoryCache = new Map();
+
   function _closeMenu() {
     clearTimeout(debounceTimeout);
     debounceTimeout = null;
@@ -255,7 +330,6 @@ const Search = (() => {
     const menu = document.getElementById('search-dropdown-menu');
     const box = document.getElementById('search-box');
     const wrap = document.getElementById('search-box-wrap');
-    const input = document.getElementById('search-input');
 
     if (menu) {
       menu.style.display = 'none';
@@ -264,18 +338,13 @@ const Search = (() => {
     const listEl = document.getElementById('search-suggestions-list');
     if (listEl) {
       listEl.style.maxHeight = '';
-      listEl.innerHTML = '';
     }
     if (box) box.classList.remove('has-dropdown-open');
     if (wrap) wrap.classList.remove('has-dropdown-open');
     document.body.classList.remove('search-dropdown-active');
+    _showShortcuts();
     menuOpen = false;
     selectedIndex = -1;
-
-    // Remove active text cursor / focus so search box cleanly returns to idle pill
-    if (input && document.activeElement === input) {
-      input.blur();
-    }
   }
 
   function _adjustDropdownMaxHeight() {
@@ -300,13 +369,23 @@ const Search = (() => {
 
   async function _fetchGoogleSuggestions(query) {
     if (!query || !query.trim()) return [];
+    const q = query.trim().toLowerCase();
+    if (suggestionsMemoryCache.has(q)) {
+      return suggestionsMemoryCache.get(q);
+    }
     try {
-      const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query.trim())}`;
-      const res = await fetch(url, { cache: 'no-cache' });
+      const url = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
       if (!res.ok) return [];
       const data = await res.json();
       if (Array.isArray(data) && Array.isArray(data[1])) {
-        return data[1].slice(0, 10);
+        const results = data[1].slice(0, 10);
+        suggestionsMemoryCache.set(q, results);
+        if (suggestionsMemoryCache.size > 200) {
+          const firstKey = suggestionsMemoryCache.keys().next().value;
+          suggestionsMemoryCache.delete(firstKey);
+        }
+        return results;
       }
     } catch (_) {
       // Fallback
@@ -314,42 +393,204 @@ const Search = (() => {
     return [];
   }
 
-  async function _renderSuggestions(rawQuery) {
-    if (!menuOpen) return;
-    const listEl = document.getElementById('search-suggestions-list');
-    if (!listEl) return;
+  function _detectUserCountry() {
+    // 1. Weather location country code if set
+    try {
+      if (typeof Weather !== 'undefined' && Weather.location && Weather.location.country_code) {
+        return Weather.location.country_code.toUpperCase();
+      }
+    } catch (_) {}
 
-    const requestId = ++activeSuggestionRequestId;
+    // 2. Browser Timezone mapping
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) {
+        const TZ_MAP = {
+          'Asia/Colombo': 'LK',
+          'Asia/Kolkata': 'IN',
+          'Asia/Calcutta': 'IN',
+          'Europe/London': 'GB',
+          'Europe/Belfast': 'GB',
+          'Asia/Singapore': 'SG',
+          'Asia/Tokyo': 'JP',
+          'Asia/Dubai': 'AE',
+          'Asia/Kuala_Lumpur': 'MY',
+          'Asia/Bangkok': 'TH',
+          'Asia/Jakarta': 'ID',
+          'Asia/Karachi': 'PK',
+          'Asia/Dhaka': 'BD',
+          'Australia/Sydney': 'AU',
+          'Australia/Melbourne': 'AU',
+          'Australia/Brisbane': 'AU',
+          'Australia/Perth': 'AU',
+          'Australia/Adelaide': 'AU',
+          'America/Toronto': 'CA',
+          'America/Vancouver': 'CA',
+          'America/Montreal': 'CA',
+          'Europe/Paris': 'FR',
+          'Europe/Berlin': 'DE',
+          'Europe/Rome': 'IT',
+          'Europe/Madrid': 'ES',
+          'Europe/Amsterdam': 'NL',
+          'Europe/Zurich': 'CH',
+          'Europe/Stockholm': 'SE',
+          'Europe/Oslo': 'NO',
+          'Europe/Helsinki': 'FI',
+          'Europe/Dublin': 'IE',
+          'America/Sao_Paulo': 'BR',
+          'America/Mexico_City': 'MX',
+          'Pacific/Auckland': 'NZ',
+        };
+        if (TZ_MAP[tz]) return TZ_MAP[tz];
+        if (tz.startsWith('America/')) return 'US';
+        if (tz.startsWith('Australia/')) return 'AU';
+        if (tz.startsWith('Canada/')) return 'CA';
+      }
+    } catch (_) {}
+
+    // 3. Browser locale / language
+    try {
+      const langs = navigator.languages || [navigator.language];
+      for (const lang of langs) {
+        if (lang && lang.includes('-')) {
+          const code = lang.split('-')[1].toUpperCase();
+          if (code && code.length === 2) return code;
+        }
+      }
+    } catch (_) {}
+
+    return 'US';
+  }
+
+  function _getActiveTrendingRegion() {
+    if (trendingRegion && trendingRegion !== 'auto') {
+      return trendingRegion.toUpperCase();
+    }
+    return _detectUserCountry();
+  }
+
+  function setTrendingRegion(region) {
+    trendingRegion = region || 'auto';
+    cachedTrending = null;
+    lastTrendingFetchTime = 0;
+  }
+
+  async function _fetchTrendingSearches() {
+    const geo = _getActiveTrendingRegion();
+    const cacheKey = `hometab_cached_trending_${geo}`;
+    const now = Date.now();
+
+    if (cachedTrending && cachedTrending.geo === geo && (now - lastTrendingFetchTime < 30 * 60 * 1000)) {
+      return cachedTrending.items;
+    }
+
+    try {
+      const saved = localStorage.getItem(cacheKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.timestamp && (now - parsed.timestamp < 30 * 60 * 1000) && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          cachedTrending = { geo, timestamp: parsed.timestamp, items: parsed.items };
+          return parsed.items;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      const res = await fetch(`https://trends.google.com/trending/rss?geo=${encodeURIComponent(geo)}`, { cache: 'no-cache' });
+      if (res.ok) {
+        const text = await res.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        const titleNodes = xmlDoc.querySelectorAll('item > title');
+        const fetched = Array.from(titleNodes)
+          .map(n => n.textContent.trim())
+          .filter(t => !!t && !t.includes('Daily Search Trends'))
+          .slice(0, 15);
+
+        if (fetched.length > 0) {
+          cachedTrending = { geo, timestamp: now, items: fetched };
+          lastTrendingFetchTime = now;
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+              timestamp: now,
+              items: fetched
+            }));
+          } catch (_) {}
+          return cachedTrending.items;
+        }
+      }
+    } catch (_) {}
+
+    const fallback = DEFAULT_TRENDING_BY_GEO[geo] || DEFAULT_TRENDING;
+    cachedTrending = { geo, timestamp: now, items: fallback };
+    return fallback;
+  }
+
+  function _buildItems(rawQuery, googleSuggestions) {
     const query = (rawQuery || '').trim().toLowerCase();
-    let items = [];
+    const suggestions = Array.isArray(googleSuggestions) ? googleSuggestions : [];
 
     if (isAiMode) {
-      // In AI Mode: absolutely NO normal browsing history!
       if (!query) {
-        _closeMenu();
-        return;
+        // AI Mode History: past questions asked in AI Mode
+        const aiHistory = (searchHistory || []).filter(h => h.isAi);
+        const historyItems = aiHistory.slice(0, 8).map(h => ({
+          query: h.query,
+          sub: 'AI Mode History',
+          isAi: true,
+          type: 'ai-history'
+        }));
+
+        if (historyItems.length >= 6) {
+          return historyItems;
+        }
+
+        // Supplement with helpful AI prompt suggestions if user has fewer than 6 AI history items
+        const needed = 6 - historyItems.length;
+        const existingQueries = new Set(historyItems.map(h => h.query.toLowerCase()));
+        const promptItems = DEFAULT_AI_PROMPTS
+          .filter(p => !existingQueries.has(p.toLowerCase()))
+          .slice(0, needed)
+          .map(p => ({
+            query: p,
+            sub: 'AI Prompt Suggestion',
+            isAi: true,
+            type: 'ai-prompt'
+          }));
+
+        return [...historyItems, ...promptItems];
       }
 
-      // Fetch live completions for the AI prompt
-      let googleSuggestions = [];
-      try {
-        googleSuggestions = await _fetchGoogleSuggestions(query);
-      } catch (_) {}
+      // If query is present in AI Mode:
+      const matchingAiHistory = (searchHistory || [])
+        .filter(h => h.isAi && h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query);
 
-      if (!menuOpen || requestId !== activeSuggestionRequestId) return;
+      const topAiMatch = matchingAiHistory.find(h => h.query.toLowerCase().startsWith(query));
+      const topGoogleMatch = suggestions.find(s => s.toLowerCase().startsWith(query));
 
-      const topCompletion = googleSuggestions.find(s => s.toLowerCase().startsWith(query)) || rawQuery.trim();
+      const isTopFromAi = !!topAiMatch;
+      const topCompletion = topAiMatch ? topAiMatch.query : (topGoogleMatch || (rawQuery || '').trim());
 
       const topItem = {
         query: topCompletion,
-        sub: 'Search with AI Mode',
+        sub: isTopFromAi ? 'AI Mode History' : 'Search with AI Mode',
         isAi: true,
-        type: 'ai-prompt',
+        type: isTopFromAi ? 'ai-history' : 'ai-prompt',
         isTopQuery: true
       };
 
-      const otherItems = googleSuggestions
-        .filter(s => s.toLowerCase() !== topCompletion.toLowerCase())
+      const remainingAiHistory = matchingAiHistory
+        .filter(h => h.query.toLowerCase() !== topCompletion.toLowerCase())
+        .slice(0, 3)
+        .map(h => ({
+          query: h.query,
+          sub: 'AI Mode History',
+          isAi: true,
+          type: 'ai-history'
+        }));
+
+      const otherItems = suggestions
+        .filter(s => s.toLowerCase() !== topCompletion.toLowerCase() && !remainingAiHistory.some(h => h.query.toLowerCase() === s.toLowerCase()))
         .map(s => ({
           query: s,
           sub: 'AI Mode',
@@ -357,91 +598,94 @@ const Search = (() => {
           type: 'ai-prompt'
         }));
 
-      items = [topItem, ...otherItems].slice(0, 8);
-      selectedIndex = -1;
-    } else {
-      // Standard search mode: Show history or popular suggestions
-      if (!query) {
-        if (searchHistory.length > 0) {
-          items = searchHistory.slice(0, 8).map(h => ({
-            query: h.query,
-            sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
-            isAi: h.isAi,
-            type: 'history'
-          }));
-        } else {
-          // When history is empty, show popular search shortcuts so omnibox activates reliably
-          const popularDefaults = [
-            'YouTube',
-            'Google Translate',
-            'Weather',
-            'Google Maps',
-            'GitHub',
-            'ChatGPT',
-            'News'
-          ];
-          items = popularDefaults.map(term => ({
-            query: term,
-            sub: currentEngine === 'google' ? 'Popular' : `${currentEngine.toUpperCase()} Search`,
-            isAi: false,
-            type: 'suggest'
-          }));
-        }
-        selectedIndex = -1;
-      } else {
-        let googleSuggestions = [];
-        try {
-          googleSuggestions = await _fetchGoogleSuggestions(query);
-        } catch (_) {}
-
-        if (!menuOpen || requestId !== activeSuggestionRequestId) return;
-
-        const historyMatches = searchHistory
-          .filter(h => h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query)
-          .slice(0, 2)
-          .map(h => ({
-            query: h.query,
-            sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
-            isAi: h.isAi,
-            type: 'history'
-          }));
-
-        const topCompletion = googleSuggestions.find(s => s.toLowerCase().startsWith(query)) ||
-                              historyMatches.find(h => h.query.toLowerCase().startsWith(query))?.query ||
-                              rawQuery.trim();
-
-        const topItem = {
-          query: topCompletion,
-          sub: currentEngine === 'google' ? 'Google Search' : currentEngine.toUpperCase() + ' Search',
-          isAi: false,
-          type: 'search',
-          isTopQuery: true
-        };
-
-        const otherGoogleItems = googleSuggestions
-          .filter(s => s.toLowerCase() !== topCompletion.toLowerCase() && !historyMatches.some(h => h.query.toLowerCase() === s.toLowerCase()))
-          .map(s => ({
-            query: s,
-            sub: '',
-            isAi: false,
-            type: 'suggest'
-          }));
-
-        items = [topItem, ...historyMatches, ...otherGoogleItems].slice(0, 10);
-        selectedIndex = -1;
-      }
+      return [topItem, ...remainingAiHistory, ...otherItems].slice(0, 8);
     }
 
+    if (!query) {
+      const historyItems = (searchHistory || []).slice(0, 8).map(h => ({
+        query: h.query,
+        sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
+        isAi: h.isAi,
+        type: 'history'
+      }));
+
+      if (historyItems.length >= 8) {
+        return historyItems;
+      }
+
+      const needed = 8 - historyItems.length;
+      const geo = _getActiveTrendingRegion();
+      const trendingList = (cachedTrending && cachedTrending.items) || DEFAULT_TRENDING_BY_GEO[geo] || DEFAULT_TRENDING;
+      const historyQueries = new Set(historyItems.map(h => h.query.toLowerCase()));
+      const trendingItems = trendingList
+        .filter(t => !historyQueries.has(t.toLowerCase()))
+        .slice(0, needed)
+        .map(t => ({
+          query: t,
+          sub: 'Trending',
+          isAi: false,
+          type: 'trending'
+        }));
+
+      return [...historyItems, ...trendingItems];
+    }
+
+    const historyMatches = (searchHistory || [])
+      .filter(h => h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query)
+      .slice(0, 2)
+      .map(h => ({
+        query: h.query,
+        sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
+        isAi: h.isAi,
+        type: 'history'
+      }));
+
+    const topCompletion = suggestions.find(s => s.toLowerCase().startsWith(query)) ||
+                          historyMatches.find(h => h.query.toLowerCase().startsWith(query))?.query ||
+                          (rawQuery || '').trim();
+
+    const topItem = {
+      query: topCompletion,
+      sub: currentEngine === 'google' ? 'Google Search' : currentEngine.toUpperCase() + ' Search',
+      isAi: false,
+      type: 'search',
+      isTopQuery: true
+    };
+
+    const otherGoogleItems = suggestions
+      .filter(s => s.toLowerCase() !== topCompletion.toLowerCase() && !historyMatches.some(h => h.query.toLowerCase() === s.toLowerCase()))
+      .map(s => ({
+        query: s,
+        sub: '',
+        isAi: false,
+        type: 'suggest'
+      }));
+
+    return [topItem, ...historyMatches, ...otherGoogleItems].slice(0, 10);
+  }
+
+  function _renderItemsToDOM(items, query, requestId) {
     if (!menuOpen || requestId !== activeSuggestionRequestId) return;
+    const listEl = document.getElementById('search-suggestions-list');
+    const menu = document.getElementById('search-dropdown-menu');
+    const box = document.getElementById('search-box');
+    const wrap = document.getElementById('search-box-wrap');
+    if (!listEl || !menu) return;
 
-    currentSuggestions = items;
-
-    listEl.innerHTML = '';
-
-    if (items.length === 0) {
-      _closeMenu();
+    if (!items || items.length === 0) {
+      menu.style.display = 'none';
+      if (box) box.classList.remove('has-dropdown-open');
+      if (wrap) wrap.classList.remove('has-dropdown-open');
       return;
     }
+
+    menu.style.display = 'block';
+    if (box) box.classList.add('has-dropdown-open');
+    if (wrap) wrap.classList.add('has-dropdown-open');
+    document.body.classList.add('search-dropdown-active');
+
+    currentSuggestions = items;
+    listEl.innerHTML = '';
 
     items.forEach((item, index) => {
       const btn = document.createElement('button');
@@ -458,11 +702,14 @@ const Search = (() => {
 
       const iconSpan = document.createElement('span');
       iconSpan.className = 'suggestion-icon';
-      if (item.type === 'ai-prompt' || (isAiMode && item.isAi)) {
+      if (item.type === 'ai-prompt' || item.type === 'ai-history' || (isAiMode && item.isAi)) {
         iconSpan.innerHTML = ICON_AI_SPARKLE;
         iconSpan.classList.add('is-ai-icon');
       } else if (item.type === 'history') {
         iconSpan.innerHTML = ICON_HISTORY;
+      } else if (item.type === 'trending') {
+        iconSpan.innerHTML = ICON_TRENDING;
+        iconSpan.classList.add('is-trending-icon');
       } else {
         iconSpan.innerHTML = ICON_SEARCH;
       }
@@ -531,7 +778,7 @@ const Search = (() => {
       btn.appendChild(arrowBtn);
 
       // Delete button for history items
-      if (item.type === 'history') {
+      if (item.type === 'history' || item.type === 'ai-history') {
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'suggestion-delete-btn';
@@ -557,11 +804,44 @@ const Search = (() => {
     // Only show Clear history button in footer if there is active history and input is empty
     const clearHistoryBtn = document.getElementById('btn-clear-history');
     if (clearHistoryBtn) {
-      clearHistoryBtn.style.display = (!query && searchHistory.length > 0) ? 'inline-block' : 'none';
+      clearHistoryBtn.style.display = (!query && searchHistory.some(h => !h.isAi)) ? 'inline-block' : 'none';
+    }
+    const aiClearHistoryBtn = document.getElementById('btn-ai-clear-history');
+    if (aiClearHistoryBtn) {
+      aiClearHistoryBtn.style.display = (!query && searchHistory.some(h => h.isAi)) ? 'inline-block' : 'none';
     }
 
-    if (menuOpen && requestId === activeSuggestionRequestId) {
-      _adjustDropdownMaxHeight();
+    _adjustDropdownMaxHeight();
+  }
+
+  function _renderSuggestions(rawQuery) {
+    if (!menuOpen) return;
+    const listEl = document.getElementById('search-suggestions-list');
+    if (!listEl) return;
+
+    const requestId = ++activeSuggestionRequestId;
+    const query = (rawQuery || '').trim().toLowerCase();
+
+    // Pass 1: Instant synchronous render with 0ms delay!
+    const cachedSugg = query ? (suggestionsMemoryCache.get(query) || []) : [];
+    const initialItems = _buildItems(rawQuery, cachedSugg);
+    _renderItemsToDOM(initialItems, query, requestId);
+
+    // Pass 2: Background asynchronous refresh if suggestions are not yet cached
+    if (query && !suggestionsMemoryCache.has(query)) {
+      _fetchGoogleSuggestions(query).then(freshSugg => {
+        if (menuOpen && requestId === activeSuggestionRequestId) {
+          const updatedItems = _buildItems(rawQuery, freshSugg);
+          _renderItemsToDOM(updatedItems, query, requestId);
+        }
+      });
+    } else if (!isAiMode && !query && searchHistory.length < 8 && (!cachedTrending || (Date.now() - lastTrendingFetchTime > 30 * 60 * 1000))) {
+      _fetchTrendingSearches().then(() => {
+        if (menuOpen && requestId === activeSuggestionRequestId) {
+          const updatedItems = _buildItems(rawQuery, []);
+          _renderItemsToDOM(updatedItems, query, requestId);
+        }
+      });
     }
   }
 
@@ -577,7 +857,7 @@ const Search = (() => {
       return;
     }
 
-    const useAi = typeof itemIsAi === 'boolean' ? itemIsAi : isAiMode;
+    const useAi = isAiMode || !!itemIsAi;
     _addHistory(cleanQuery, useAi);
 
     const url = _buildSearchUrl(cleanQuery, useAi);
@@ -599,7 +879,7 @@ const Search = (() => {
           return `https://www.perplexity.ai/search?q=${encoded}`;
         case 'google_ai':
         default:
-          return `https://www.google.com/search?q=${encoded}&udm=50`;
+          return `https://www.google.com/search?q=${encoded}`;
       }
     }
 
@@ -980,15 +1260,18 @@ const Search = (() => {
 
     // Focus / Click on input opens Google dropdown
     input.addEventListener('focus', () => {
+      _hideShortcuts();
       _openMenu();
     });
 
     input.addEventListener('click', () => {
+      _hideShortcuts();
       if (!menuOpen) _openMenu();
     });
 
     // Input debounce for Google autocomplete (does NOT modify input.value while typing)
     input.addEventListener('input', () => {
+      _hideShortcuts();
       originalUserTyped = input.value;
 
       if (!menuOpen) {
@@ -999,6 +1282,14 @@ const Search = (() => {
       debounceTimeout = setTimeout(() => {
         _renderSuggestions(originalUserTyped);
       }, 100);
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (!menuOpen && document.activeElement !== input) {
+          _showShortcuts();
+        }
+      }, 120);
     });
 
     // Keyboard navigation
@@ -1069,6 +1360,7 @@ const Search = (() => {
         input.blur();
         _closeMenu();
         _closeEngineDropdown();
+        _showShortcuts();
       }
     });
 
@@ -1089,7 +1381,6 @@ const Search = (() => {
         e.stopPropagation();
         if (isAiMode) {
           _toggleAiMode();
-          _closeMenu();
         }
       };
       aiCloseBtn.addEventListener('click', handleCloseAi);
@@ -1100,12 +1391,54 @@ const Search = (() => {
       });
     }
 
-    // AI Mode button click (enters AI mode)
+    // AI Mode button click: if input has text, run AI search directly; otherwise toggle AI mode
     if (aiBtn) {
       aiBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        _toggleAiMode();
-        _closeMenu();
+        const query = (input ? input.value : '').trim();
+        if (query) {
+          _executeSearch(query, true);
+        } else {
+          _toggleAiMode();
+        }
+      });
+    }
+
+    // AI Search History button inside AI dropdown footer
+    const aiHistoryBtn = document.getElementById('btn-ai-view-history');
+    if (aiHistoryBtn) {
+      aiHistoryBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const input = document.getElementById('search-input');
+        if (input) {
+          input.value = '';
+          originalUserTyped = '';
+          input.focus();
+        }
+        const aiHistory = (searchHistory || []).filter(h => h.isAi);
+        if (aiHistory.length === 0) {
+          if (typeof App !== 'undefined' && App.showToast) {
+            App.showToast('No past AI questions yet');
+          }
+          _renderSuggestions('');
+          return;
+        }
+        const items = aiHistory.map(h => ({
+          query: h.query,
+          sub: 'AI Mode History',
+          isAi: true,
+          type: 'ai-history'
+        }));
+        _renderItemsToDOM(items, '', activeSuggestionRequestId);
+      });
+    }
+
+    // AI Clear history button inside AI dropdown footer
+    const aiClearHistoryBtn = document.getElementById('btn-ai-clear-history');
+    if (aiClearHistoryBtn) {
+      aiClearHistoryBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _clearAiHistory();
       });
     }
 
@@ -1153,6 +1486,10 @@ const Search = (() => {
           _closeMenu();
           _closeEngineDropdown();
         }
+        if (input && document.activeElement === input) {
+          input.blur();
+        }
+        _showShortcuts();
       }
     };
     document.addEventListener('pointerdown', handleOutsideDismiss, true);
@@ -1212,6 +1549,11 @@ const Search = (() => {
     get engine() { return currentEngine; },
     get customUrl() { return customUrl; },
     get isAiMode() { return isAiMode; },
+    get isFrostedOmnibox() { return isFrostedOmnibox; },
+    get trendingRegion() { return trendingRegion; },
+    setFrostedOmnibox,
+    setTrendingRegion,
+    detectCountry: _detectUserCountry,
     toggleAiMode: _toggleAiMode,
   };
 })();

@@ -163,6 +163,8 @@ const Settings = (() => {
       const searchEl = document.getElementById('search-widget');
       const isSearchVisible = searchEl ? searchEl.style.display !== 'none' : true;
 
+      const isFrostedOmnibox = (typeof Search !== 'undefined' && typeof Search.isFrostedOmnibox === 'boolean') ? Search.isFrostedOmnibox : true;
+
       container.appendChild(_section(I18n.t('search', 'Search Bar'), [
         _row('Search Bar', _toggle('showSearch', isSearchVisible, async (val) => {
           const widget = document.getElementById('search-widget');
@@ -172,6 +174,13 @@ const Settings = (() => {
           vis['search-widget'] = val;
           await Storage.setSync({ widgetVisibility: vis });
         }), 'Show search bar in center'),
+        _row('Frosted Glass Omnibox', _toggle('frostedOmnibox', isFrostedOmnibox, async (val) => {
+          await Storage.setSync({ frostedOmnibox: val });
+          if (typeof Search !== 'undefined' && typeof Search.setFrostedOmnibox === 'function') {
+            Search.setFrostedOmnibox(val);
+          }
+        }), 'Frosted transparent search bar and suggestion menu while typing'),
+        _row('Trending Region', _trendingRegionSelect(), 'Country for location-based trending topics'),
         _row(I18n.t('searchEngine', 'Search Engine'), _searchEngineSelect()),
         _row(I18n.t('aiProvider', 'AI Search Provider'), _aiProviderSelect()),
         _rowStacked(I18n.t('customUrl', 'Custom URL template'), _customSearchUrlInput()),
@@ -819,6 +828,59 @@ const Settings = (() => {
       Search.setCustomUrl(input.value.trim());
     });
     return input;
+  }
+
+  function _trendingRegionSelect() {
+    const select = document.createElement('select');
+    select.className = 'settings-select';
+
+    const detectedCountry = (typeof Search !== 'undefined' && typeof Search.detectCountry === 'function') 
+      ? Search.detectCountry() 
+      : 'US';
+
+    const regions = [
+      { id: 'auto', name: `Auto (${detectedCountry})` },
+      { id: 'LK', name: 'Sri Lanka (LK)' },
+      { id: 'US', name: 'United States (US)' },
+      { id: 'GB', name: 'United Kingdom (UK)' },
+      { id: 'IN', name: 'India (IN)' },
+      { id: 'CA', name: 'Canada (CA)' },
+      { id: 'AU', name: 'Australia (AU)' },
+      { id: 'SG', name: 'Singapore (SG)' },
+      { id: 'AE', name: 'United Arab Emirates (AE)' },
+      { id: 'DE', name: 'Germany (DE)' },
+      { id: 'FR', name: 'France (FR)' },
+      { id: 'JP', name: 'Japan (JP)' },
+      { id: 'MY', name: 'Malaysia (MY)' },
+      { id: 'PK', name: 'Pakistan (PK)' },
+      { id: 'NZ', name: 'New Zealand (NZ)' },
+      { id: 'BR', name: 'Brazil (BR)' },
+    ];
+
+    const currentRegion = (typeof Search !== 'undefined' && Search.trendingRegion) 
+      ? Search.trendingRegion 
+      : 'auto';
+
+    regions.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      opt.selected = currentRegion === r.id;
+      select.appendChild(opt);
+    });
+
+    select.addEventListener('change', async () => {
+      const val = select.value;
+      await Storage.setSync({ trendingRegion: val });
+      if (typeof Search !== 'undefined' && typeof Search.setTrendingRegion === 'function') {
+        Search.setTrendingRegion(val);
+      }
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(`Trending region: ${select.options[select.selectedIndex].text}`);
+      }
+    });
+
+    return select;
   }
 
   function _tempUnitGroup() {

@@ -276,20 +276,47 @@
   transition: z-index 0.15s ease;
 }
 
-body.search-dropdown-active .search-section {
-  z-index: 500;
+body.search-dropdown-active .search-section,
+body.search-active .search-section,
+body:has(#search-box-wrap.has-dropdown-open) .search-section,
+body:has(#search-box.has-dropdown-open) .search-section,
+body:has(#search-box:focus-within) .search-section,
+body:has(#search-input:focus) .search-section {
+  z-index: 500 !important;
 }
 
-body.search-dropdown-active .shortcuts-section {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(14px) scale(0.97);
+/* Option 1: Clean Focus Mode - Shortcuts fade out fast & smooth when search is active/focused */
+body.search-dropdown-active .shortcuts-section,
+body.search-active .shortcuts-section,
+body:has(#search-box-wrap.has-dropdown-open) .shortcuts-section,
+body:has(#search-box.has-dropdown-open) .shortcuts-section,
+body:has(#search-box:focus-within) .shortcuts-section,
+body:has(#search-input:focus) .shortcuts-section,
+body.search-dropdown-active #shortcuts-widget,
+body.search-active #shortcuts-widget,
+body:has(#search-box-wrap.has-dropdown-open) #shortcuts-widget,
+body:has(#search-box.has-dropdown-open) #shortcuts-widget,
+body:has(#search-box:focus-within) #shortcuts-widget,
+body:has(#search-input:focus) #shortcuts-widget,
+.shortcuts-section.search-hidden,
+#shortcuts-widget.search-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(14px) scale(0.97) !important;
+  transition:
+    opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1) !important,
+    transform 0.16s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-body.search-dropdown-active .bottom-bar {
-  opacity: 0.2;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
+body.search-dropdown-active .bottom-bar,
+body.search-active .bottom-bar,
+body:has(#search-box-wrap.has-dropdown-open) .bottom-bar,
+body:has(#search-box.has-dropdown-open) .bottom-bar,
+body:has(#search-box:focus-within) .bottom-bar,
+body:has(#search-input:focus) .bottom-bar {
+  opacity: 0.2 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease !important;
 }
 
 .search-box-wrap {
@@ -407,10 +434,9 @@ body.search-dropdown-active .bottom-bar {
     0 2px 6px rgba(0, 0, 0, 0.08),
     inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
   transition:
-    background-color 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 0.25s ease,
-    box-shadow 0.3s ease,
-    border-radius 0.18s ease;
+    background-color 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -458,7 +484,7 @@ body.search-dropdown-active .bottom-bar {
   border-radius: 24px 24px 0 0 !important;
   background: #303134 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-bottom: none !important;
+  border-bottom: 1px solid transparent !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -513,7 +539,7 @@ body.search-dropdown-active .bottom-bar {
 [data-theme="light"] .search-box:focus-within.has-dropdown-open {
   background: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.12) !important;
-  border-bottom: none !important;
+  border-bottom: 1px solid transparent !important;
   box-shadow: none !important;
 }
 
@@ -554,7 +580,7 @@ body.search-dropdown-active .bottom-bar {
   [data-theme="auto"] .search-box:focus-within.has-dropdown-open {
     background: #ffffff !important;
     border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    border-bottom: none !important;
+    border-bottom: 1px solid transparent !important;
     box-shadow: none !important;
   }
 
@@ -742,16 +768,19 @@ body.search-dropdown-active .bottom-bar {
   height: 100%;
   border: none;
   background: transparent;
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 500;
   color: #ffffff;
   caret-color: var(--accent);
   outline: none;
-  letter-spacing: 0.15px;
-  font-family: var(--font);
+  letter-spacing: 0.65px;
+  font-family: 'Outfit', var(--font);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   transition: color 0.15s ease, text-shadow 0.15s ease;
   cursor: text;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .search-input::selection {
@@ -761,7 +790,9 @@ body.search-dropdown-active .bottom-bar {
 
 .search-input::placeholder {
   color: rgba(255, 255, 255, 0.62);
-  font-weight: 300;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  font-family: 'Outfit', var(--font);
   transition: color 0.15s ease;
 }
 
@@ -1475,13 +1506,25 @@ body.search-dropdown-active .bottom-bar {
   box-sizing: border-box;
   background: #303134;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-top: none !important;
+  border-top: 1px solid transparent !important;
   border-radius: 0 0 24px 24px !important;
   box-shadow: none !important;
   margin-top: -1px;
   z-index: 501;
   overflow: hidden;
   max-height: calc(100vh - 360px);
+  animation: dropdownFadeIn 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .search-suggestions-list {
@@ -1520,8 +1563,10 @@ body.search-dropdown-active .bottom-bar {
   padding: 11px 20px;
   border-radius: 0 24px 24px 0;
   color: #e8eaed;
+  font-family: 'Outfit', var(--font);
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: 0.45px;
   cursor: pointer;
   text-align: left;
   background: transparent;
@@ -1574,6 +1619,34 @@ body.search-dropdown-active .bottom-bar {
   color: var(--accent, #8ab4f8) !important;
 }
 
+.search-suggestion-item .suggestion-icon.is-trending-icon {
+  color: var(--accent, #8ab4f8);
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.search-suggestion-item:hover .suggestion-icon.is-trending-icon {
+  color: var(--accent-hover, #a8c7fa);
+  transform: translateY(-1px) scale(1.08);
+}
+
+[data-theme="light"] .search-suggestion-item .suggestion-icon.is-trending-icon {
+  color: var(--accent, #1a73e8);
+}
+
+[data-theme="light"] .search-suggestion-item:hover .suggestion-icon.is-trending-icon {
+  color: #174ea6;
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] .search-suggestion-item .suggestion-icon.is-trending-icon {
+    color: var(--accent, #1a73e8);
+  }
+
+  [data-theme="auto"] .search-suggestion-item:hover .suggestion-icon.is-trending-icon {
+    color: #174ea6;
+  }
+}
+
 .search-suggestion-item .suggestion-content {
   flex: 1;
   min-width: 0;
@@ -1586,26 +1659,30 @@ body.search-dropdown-active .bottom-bar {
 }
 
 .suggestion-content .suggestion-main {
-  font-weight: 400;
+  font-family: 'Outfit', var(--font);
+  font-weight: 500;
   color: #e8eaed;
   font-size: 16px;
 }
 
-/* Typed portion stays normal weight */
+/* Typed portion stays medium weight */
 .suggestion-content .suggestion-match {
-  font-weight: 400;
+  font-family: 'Outfit', var(--font);
+  font-weight: 500;
   color: #e8eaed;
 }
 
 /* Completion/rest is bold */
 .suggestion-content .suggestion-bold {
+  font-family: 'Outfit', var(--font);
   font-weight: 700;
   color: #ffffff;
 }
 
 .suggestion-content .suggestion-sub {
+  font-family: 'Outfit', var(--font);
   color: #9aa0a6;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
 }
 
@@ -1749,7 +1826,7 @@ body.search-dropdown-active .bottom-bar {
 [data-theme="light"] .search-dropdown-menu {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  border-top: none !important;
+  border-top: 1px solid transparent !important;
   box-shadow: none !important;
   margin-top: -1px;
 }
@@ -1878,7 +1955,7 @@ body.search-dropdown-active .bottom-bar {
   [data-theme="auto"] .search-dropdown-menu {
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.12);
-    border-top: none !important;
+    border-top: 1px solid transparent !important;
     box-shadow: none !important;
     margin-top: -1px;
   }
@@ -2004,18 +2081,168 @@ body.search-dropdown-active .bottom-bar {
   }
 }
 
+/* ========================================================
+   Frosted Glass Omnibox Option (Option 1: Clean Focus Mode)
+   Translucent glass surface for search box + suggestion dropdown
+   ======================================================== */
+
+/* Dark Theme Default (Frosted Glass) */
+.search-box-wrap.frosted-omnibox-enabled .search-box.has-dropdown-open,
+.search-box-wrap.frosted-omnibox-enabled .search-box:focus-within.has-dropdown-open {
+  background: rgba(30, 31, 36, 0.78) !important;
+  backdrop-filter: blur(48px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-bottom: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+.search-box-wrap.frosted-omnibox-enabled .search-dropdown-menu {
+  background: rgba(30, 31, 36, 0.78) !important;
+  backdrop-filter: blur(48px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-top: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+.search-box-wrap.frosted-omnibox-enabled .search-dropdown-footer {
+  background: rgba(24, 25, 29, 0.85) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.search-box-wrap.frosted-omnibox-enabled .search-dropdown-footer-ai {
+  background: rgba(24, 25, 29, 0.85) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.search-box-wrap.frosted-omnibox-enabled .search-suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.search-box-wrap.frosted-omnibox-enabled .search-suggestion-item.selected {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.search-box-wrap.frosted-omnibox-enabled .search-suggestion-item.selected:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* Light Theme (Frosted Milk Glass) */
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-box.has-dropdown-open,
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-box:focus-within.has-dropdown-open {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(48px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  border-bottom: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-dropdown-menu {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(48px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  border-top: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-dropdown-footer {
+  background: rgba(245, 245, 247, 0.88) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-dropdown-footer-ai {
+  background: rgba(245, 245, 247, 0.88) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-suggestion-item:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-suggestion-item.selected {
+  background: rgba(0, 0, 0, 0.09) !important;
+}
+
+[data-theme="light"] .search-box-wrap.frosted-omnibox-enabled .search-suggestion-item.selected:hover {
+  background: rgba(0, 0, 0, 0.13) !important;
+}
+
+/* Auto Theme in System Light Mode */
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-box.has-dropdown-open,
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-box:focus-within.has-dropdown-open {
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    border-bottom: 1px solid transparent !important;
+    box-shadow: none !important;
+  }
+
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-dropdown-menu {
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    border-top: 1px solid transparent !important;
+    box-shadow: none !important;
+  }
+
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-dropdown-footer {
+    background: rgba(245, 245, 247, 0.88) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-dropdown-footer-ai {
+    background: rgba(245, 245, 247, 0.88) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-suggestion-item:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+  }
+
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-suggestion-item.selected {
+    background: rgba(0, 0, 0, 0.09) !important;
+  }
+
+  [data-theme="auto"] .search-box-wrap.frosted-omnibox-enabled .search-suggestion-item.selected:hover {
+    background: rgba(0, 0, 0, 0.13) !important;
+  }
+}
+
+@keyframes shortcutsPageEntry {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* --- Shortcuts --- */
-.shortcuts-section {
+.shortcuts-section,
+#shortcuts-widget {
   width: 100%;
   max-width: 680px;
   margin-top: 6vh; /* Push shortcuts much further down from search bar */
-  animation: fadeIn var(--duration-slow) var(--ease) 150ms both;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   z-index: 1;
-  transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  will-change: opacity, transform;
+  transition:
+    opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: shortcutsPageEntry 0.4s cubic-bezier(0.16, 1, 0.3, 1) 120ms backwards;
 }
 
 .shortcuts-grid {
