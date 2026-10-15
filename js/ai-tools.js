@@ -94,7 +94,7 @@ const AITools = (() => {
       const a = document.createElement('a');
       a.className = 'ai-tool-item';
       a.href = tool.url;
-      a.target = '_blank';
+      a.target = '_self';
       a.rel = 'noopener noreferrer';
 
       const icon = document.createElement('span');
