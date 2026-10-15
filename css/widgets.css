@@ -388,7 +388,7 @@ body.search-dropdown-active .bottom-bar {
 
 .search-box-wrap.is-ai-mode .search-box.has-dropdown-open {
   border-color: rgba(var(--accent-rgb, 99, 102, 241), 0.25) !important;
-  box-shadow: 0 -2px 16px rgba(var(--accent-rgb, 99, 102, 241), 0.12) !important;
+  box-shadow: none !important;
 }
 
 .search-box {
@@ -438,16 +438,28 @@ body.search-dropdown-active .bottom-bar {
     inset 0 0.5px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Unified Outer Elevation Drop Shadow around the entire combined Omnibox (search box + dropdown) */
+.search-box-wrap.has-dropdown-open {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) drop-shadow(0 16px 36px rgba(0, 0, 0, 0.45));
+}
+
+[data-theme="light"] .search-box-wrap.has-dropdown-open {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08)) drop-shadow(0 14px 30px rgba(0, 0, 0, 0.12));
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] .search-box-wrap.has-dropdown-open {
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08)) drop-shadow(0 14px 30px rgba(0, 0, 0, 0.12));
+  }
+}
+
 .search-box.has-dropdown-open,
 .search-box:focus-within.has-dropdown-open {
   border-radius: 24px 24px 0 0 !important;
   background: #303134 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-bottom: 1px solid #3c4043 !important;
-  box-shadow:
-    0 -4px 16px rgba(0, 0, 0, 0.25),
-    -6px 0 16px rgba(0, 0, 0, 0.25),
-    6px 0 16px rgba(0, 0, 0, 0.25) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   transition: none !important;
@@ -501,11 +513,8 @@ body.search-dropdown-active .bottom-bar {
 [data-theme="light"] .search-box:focus-within.has-dropdown-open {
   background: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.12) !important;
-  border-bottom: 1px solid #f1f3f4 !important;
-  box-shadow:
-    0 -4px 16px rgba(0, 0, 0, 0.06),
-    -6px 0 16px rgba(0, 0, 0, 0.06),
-    6px 0 16px rgba(0, 0, 0, 0.06) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 [data-theme="light"] .search-box.has-dropdown-open .search-input,
@@ -545,11 +554,8 @@ body.search-dropdown-active .bottom-bar {
   [data-theme="auto"] .search-box:focus-within.has-dropdown-open {
     background: #ffffff !important;
     border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    border-bottom: 1px solid #f1f3f4 !important;
-    box-shadow:
-      0 -4px 16px rgba(0, 0, 0, 0.06),
-      -6px 0 16px rgba(0, 0, 0, 0.06),
-      6px 0 16px rgba(0, 0, 0, 0.06) !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
   }
 
   [data-theme="auto"] .search-box.has-dropdown-open .search-input,
@@ -1469,13 +1475,10 @@ body.search-dropdown-active .bottom-bar {
   box-sizing: border-box;
   background: #303134;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-top: none;
+  border-top: none !important;
   border-radius: 0 0 24px 24px !important;
-  box-shadow:
-    0 16px 36px rgba(0, 0, 0, 0.45),
-    -6px 0 16px rgba(0, 0, 0, 0.25),
-    6px 0 16px rgba(0, 0, 0, 0.25);
-  margin-top: 0;
+  box-shadow: none !important;
+  margin-top: -1px;
   z-index: 501;
   overflow: hidden;
   max-height: calc(100vh - 360px);
@@ -1746,11 +1749,9 @@ body.search-dropdown-active .bottom-bar {
 [data-theme="light"] .search-dropdown-menu {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  border-top: none;
-  box-shadow:
-    0 16px 36px rgba(0, 0, 0, 0.18),
-    -6px 0 16px rgba(0, 0, 0, 0.06),
-    6px 0 16px rgba(0, 0, 0, 0.06);
+  border-top: none !important;
+  box-shadow: none !important;
+  margin-top: -1px;
 }
 
 [data-theme="light"] .search-suggestions-list {
@@ -1877,11 +1878,9 @@ body.search-dropdown-active .bottom-bar {
   [data-theme="auto"] .search-dropdown-menu {
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.12);
-    border-top: none;
-    box-shadow:
-      0 16px 36px rgba(0, 0, 0, 0.18),
-      -6px 0 16px rgba(0, 0, 0, 0.06),
-      6px 0 16px rgba(0, 0, 0, 0.06);
+    border-top: none !important;
+    box-shadow: none !important;
+    margin-top: -1px;
   }
 
   [data-theme="auto"] .search-suggestions-list {
