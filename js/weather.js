@@ -634,7 +634,8 @@ const Weather = (() => {
         const itemWmo = WMO_CODES[item.weatherCode] || WMO_CODES[0];
         const iconSvg = WEATHER_ICONS[itemWmo.icon] || WEATHER_ICONS.sun;
         col.innerHTML = `
-          <span class="weather-hourly-time">${dayTag}${item.time}</span>
+          ${dayTag}
+          <span class="weather-hourly-time">${item.time}</span>
           <div class="weather-hourly-icon">${iconSvg}</div>
           <span class="weather-hourly-temp">${item.temp}</span>
         `;
@@ -643,7 +644,8 @@ const Weather = (() => {
         const uvInfo = _getUvDetails(uv);
         const warnChip = uv >= 3 ? `<span class="weather-hourly-warn-chip" title="Protection recommended">SPF</span>` : '';
         col.innerHTML = `
-          <span class="weather-hourly-time">${dayTag}${item.time}</span>
+          ${dayTag}
+          <span class="weather-hourly-time">${item.time}</span>
           <div class="weather-hourly-sun-icon" style="color: ${uvInfo.color};">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
               <circle cx="12" cy="12" r="4"/>

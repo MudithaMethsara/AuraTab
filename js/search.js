@@ -14,16 +14,16 @@ const Search = (() => {
   ];
 
   const DEFAULT_HISTORY = [
-    { query: 'tiktok', sub: 'Google Search', isAi: false },
-    { query: 'usdt to lkr', sub: '', isAi: false },
-    { query: 'muditha methsara', sub: 'AI Mode History', isAi: true },
-    { query: 'how does quantum computing work', sub: 'AI Mode History', isAi: true },
-    { query: 'mynt extension', sub: '', isAi: false },
-    { query: 'custom home tab reddit', sub: '', isAi: false },
-    { query: 'translate', sub: '', isAi: false },
-    { query: 'compare next.js vs vite in 2026', sub: 'AI Mode History', isAi: true },
-    { query: 'home tab glass look design', sub: '', isAi: false },
-    { query: 'anime wallpapers 4k', sub: '', isAi: false },
+    { query: 'tiktok', sub: 'Google Search', isAi: false, count: 5, timestamp: Date.now() - 3600000 },
+    { query: 'usdt to lkr', sub: '', isAi: false, count: 3, timestamp: Date.now() - 7200000 },
+    { query: 'muditha methsara', sub: 'AI Mode History', isAi: true, count: 4, timestamp: Date.now() - 10800000 },
+    { query: 'how does quantum computing work', sub: 'AI Mode History', isAi: true, count: 2, timestamp: Date.now() - 14400000 },
+    { query: 'mynt extension', sub: '', isAi: false, count: 2, timestamp: Date.now() - 18000000 },
+    { query: 'custom home tab reddit', sub: '', isAi: false, count: 1, timestamp: Date.now() - 21600000 },
+    { query: 'translate', sub: '', isAi: false, count: 8, timestamp: Date.now() - 25200000 },
+    { query: 'compare next.js vs vite in 2026', sub: 'AI Mode History', isAi: true, count: 3, timestamp: Date.now() - 28800000 },
+    { query: 'home tab glass look design', sub: '', isAi: false, count: 1, timestamp: Date.now() - 32400000 },
+    { query: 'anime wallpapers 4k', sub: '', isAi: false, count: 1, timestamp: Date.now() - 36000000 },
   ];
 
   const DEFAULT_AI_PROMPTS = [
@@ -117,6 +117,16 @@ const Search = (() => {
       const saved = localStorage.getItem('hometab_search_history');
       if (saved) {
         searchHistory = JSON.parse(saved);
+        if (!Array.isArray(searchHistory)) {
+          searchHistory = [...DEFAULT_HISTORY];
+          _saveHistory();
+        } else {
+          // Normalize existing items to ensure valid count and timestamp
+          searchHistory.forEach(h => {
+            if (typeof h.count !== 'number' || h.count < 1) h.count = 1;
+            if (typeof h.timestamp !== 'number') h.timestamp = Date.now();
+          });
+        }
       } else {
         searchHistory = [...DEFAULT_HISTORY];
         _saveHistory();
@@ -132,10 +142,35 @@ const Search = (() => {
     } catch (_) {}
   }
 
+  // Smart Frecency formula: balances search frequency (count) + recency (age)
+  function _computeFrecency(item, now = Date.now()) {
+    const count = (typeof item.count === 'number' && item.count > 0) ? item.count : 1;
+    const ageMs = Math.max(0, now - (item.timestamp || now));
+    const ageHours = ageMs / (1000 * 60 * 60);
+
+    let recencyBonus = 0;
+    if (ageHours < 4) {
+      recencyBonus = 60;
+    } else if (ageHours < 24) {
+      recencyBonus = 40;
+    } else if (ageHours < 72) {
+      recencyBonus = 25;
+    } else if (ageHours < 168) {
+      recencyBonus = 10;
+    }
+
+    const frequencyScore = count * 15;
+    return frequencyScore + recencyBonus;
+  }
+
   function _addHistory(query, isAi) {
     if (!query) return;
     const cleanQuery = query.trim();
     if (!cleanQuery) return;
+
+    // Find existing to increment search frequency
+    const existing = searchHistory.find(h => h.query.toLowerCase() === cleanQuery.toLowerCase());
+    const count = (existing && typeof existing.count === 'number') ? existing.count + 1 : 1;
 
     // Remove existing
     searchHistory = searchHistory.filter(h => h.query.toLowerCase() !== cleanQuery.toLowerCase());
@@ -144,7 +179,8 @@ const Search = (() => {
       query: cleanQuery,
       sub: isAi ? 'AI Mode History' : (currentEngine === 'google' ? 'Google Search' : ''),
       isAi: !!isAi,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      count: count
     });
     _saveHistory();
   }
@@ -532,25 +568,32 @@ const Search = (() => {
 
     if (isAiMode) {
       if (!query) {
-        // AI Mode History: past questions asked in AI Mode
-        const aiHistory = (searchHistory || []).filter(h => h.isAi);
-        const historyItems = aiHistory.slice(0, 8).map(h => ({
+        // AI Mode History: past questions asked in AI Mode, ranked by frecency
+        const now = Date.now();
+        const rankedAiHistory = [...(searchHistory || [])]
+          .filter(h => h.isAi)
+          .sort((a, b) => {
+            const scoreB = _computeFrecency(b, now);
+            const scoreA = _computeFrecency(a, now);
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return (b.timestamp || 0) - (a.timestamp || 0);
+          });
+
+        const maxAiHistory = 5;
+        const historyToShow = rankedAiHistory.slice(0, maxAiHistory);
+        const historyItems = historyToShow.map(h => ({
           query: h.query,
           sub: 'AI Mode History',
           isAi: true,
           type: 'ai-history'
         }));
 
-        if (historyItems.length >= 6) {
-          return historyItems;
-        }
-
-        // Supplement with helpful AI prompt suggestions if user has fewer than 6 AI history items
-        const needed = 6 - historyItems.length;
+        // Complement with 3 AI prompts (or more if user has fewer than 5 AI history items)
+        const neededPrompts = Math.max(3, 8 - historyItems.length);
         const existingQueries = new Set(historyItems.map(h => h.query.toLowerCase()));
         const promptItems = DEFAULT_AI_PROMPTS
           .filter(p => !existingQueries.has(p.toLowerCase()))
-          .slice(0, needed)
+          .slice(0, neededPrompts)
           .map(p => ({
             query: p,
             sub: 'AI Prompt Suggestion',
@@ -558,12 +601,19 @@ const Search = (() => {
             type: 'ai-prompt'
           }));
 
-        return [...historyItems, ...promptItems];
+        return [...historyItems, ...promptItems].slice(0, 8);
       }
 
       // If query is present in AI Mode:
-      const matchingAiHistory = (searchHistory || [])
-        .filter(h => h.isAi && h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query);
+      const now = Date.now();
+      const matchingAiHistory = [...(searchHistory || [])]
+        .filter(h => h.isAi && h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query)
+        .sort((a, b) => {
+          const scoreB = _computeFrecency(b, now);
+          const scoreA = _computeFrecency(a, now);
+          if (scoreB !== scoreA) return scoreB - scoreA;
+          return (b.timestamp || 0) - (a.timestamp || 0);
+        });
 
       const topAiMatch = matchingAiHistory.find(h => h.query.toLowerCase().startsWith(query));
       const topGoogleMatch = suggestions.find(s => s.toLowerCase().startsWith(query));
@@ -602,24 +652,34 @@ const Search = (() => {
     }
 
     if (!query) {
-      const historyItems = (searchHistory || []).slice(0, 8).map(h => ({
+      // Standard search mode: Top 5 most used / recent history + 3 location trending searches
+      const now = Date.now();
+      const rankedHistory = [...(searchHistory || [])]
+        .filter(h => !h.isAi)
+        .sort((a, b) => {
+          const scoreB = _computeFrecency(b, now);
+          const scoreA = _computeFrecency(a, now);
+          if (scoreB !== scoreA) return scoreB - scoreA;
+          return (b.timestamp || 0) - (a.timestamp || 0);
+        });
+
+      const maxHistoryCount = 5;
+      const historyToShow = rankedHistory.slice(0, maxHistoryCount);
+      const historyItems = historyToShow.map(h => ({
         query: h.query,
-        sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
-        isAi: h.isAi,
+        sub: h.sub || (currentEngine === 'google' ? 'Google Search' : ''),
+        isAi: false,
         type: 'history'
       }));
 
-      if (historyItems.length >= 8) {
-        return historyItems;
-      }
-
-      const needed = 8 - historyItems.length;
+      // At least 3 trending items; dynamically fills remaining spots up to 8 total
+      const neededTrending = Math.max(3, 8 - historyItems.length);
       const geo = _getActiveTrendingRegion();
       const trendingList = (cachedTrending && cachedTrending.items) || DEFAULT_TRENDING_BY_GEO[geo] || DEFAULT_TRENDING;
       const historyQueries = new Set(historyItems.map(h => h.query.toLowerCase()));
       const trendingItems = trendingList
         .filter(t => !historyQueries.has(t.toLowerCase()))
-        .slice(0, needed)
+        .slice(0, neededTrending)
         .map(t => ({
           query: t,
           sub: 'Trending',
@@ -627,21 +687,21 @@ const Search = (() => {
           type: 'trending'
         }));
 
-      return [...historyItems, ...trendingItems];
+      return [...historyItems, ...trendingItems].slice(0, 8);
     }
 
-    const historyMatches = (searchHistory || [])
+    const now = Date.now();
+    const sortedHistoryMatches = [...(searchHistory || [])]
       .filter(h => h.query.toLowerCase().includes(query) && h.query.toLowerCase() !== query)
-      .slice(0, 2)
-      .map(h => ({
-        query: h.query,
-        sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
-        isAi: h.isAi,
-        type: 'history'
-      }));
+      .sort((a, b) => {
+        const scoreB = _computeFrecency(b, now);
+        const scoreA = _computeFrecency(a, now);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
 
     const topCompletion = suggestions.find(s => s.toLowerCase().startsWith(query)) ||
-                          historyMatches.find(h => h.query.toLowerCase().startsWith(query))?.query ||
+                          sortedHistoryMatches.find(h => h.query.toLowerCase().startsWith(query))?.query ||
                           (rawQuery || '').trim();
 
     const topItem = {
@@ -652,8 +712,18 @@ const Search = (() => {
       isTopQuery: true
     };
 
+    const remainingHistory = sortedHistoryMatches
+      .filter(h => h.query.toLowerCase() !== topCompletion.toLowerCase())
+      .slice(0, 2)
+      .map(h => ({
+        query: h.query,
+        sub: h.isAi ? 'AI Mode' : (h.sub || (currentEngine === 'google' ? 'Google Search' : '')),
+        isAi: h.isAi,
+        type: 'history'
+      }));
+
     const otherGoogleItems = suggestions
-      .filter(s => s.toLowerCase() !== topCompletion.toLowerCase() && !historyMatches.some(h => h.query.toLowerCase() === s.toLowerCase()))
+      .filter(s => s.toLowerCase() !== topCompletion.toLowerCase() && !remainingHistory.some(h => h.query.toLowerCase() === s.toLowerCase()))
       .map(s => ({
         query: s,
         sub: '',
@@ -661,7 +731,7 @@ const Search = (() => {
         type: 'suggest'
       }));
 
-    return [topItem, ...historyMatches, ...otherGoogleItems].slice(0, 10);
+    return [topItem, ...remainingHistory, ...otherGoogleItems].slice(0, 10);
   }
 
   function _renderItemsToDOM(items, query, requestId) {
@@ -685,7 +755,7 @@ const Search = (() => {
     document.body.classList.add('search-dropdown-active');
 
     currentSuggestions = items;
-    listEl.innerHTML = '';
+    const fragment = document.createDocumentFragment();
 
     items.forEach((item, index) => {
       const btn = document.createElement('button');
@@ -699,6 +769,7 @@ const Search = (() => {
       }
       btn.setAttribute('role', 'option');
       btn.dataset.index = index;
+      btn.title = item.query;
 
       const iconSpan = document.createElement('span');
       iconSpan.className = 'suggestion-icon';
@@ -742,12 +813,17 @@ const Search = (() => {
       }
       contentSpan.appendChild(mainText);
 
-      if (item.sub) {
+      // Idea 1: For long queries (> 32 chars), hide redundant "- Google Search" or engine sub-labels
+      // so long sentences display cleanly without awkward clipping
+      const isLongQuery = (item.query || '').trim().length > 32;
+      const isSearchEngineSub = item.sub && /search/i.test(item.sub);
+
+      if (item.sub && (!isLongQuery || !isSearchEngineSub)) {
         const subText = document.createElement('span');
         subText.className = 'suggestion-sub';
         subText.textContent = ' - ' + item.sub;
         contentSpan.appendChild(subText);
-      } else if (item.isAi) {
+      } else if (item.isAi && !isLongQuery) {
         const aiSub = document.createElement('span');
         aiSub.className = 'suggestion-sub';
         aiSub.textContent = ' - AI Mode';
@@ -798,8 +874,10 @@ const Search = (() => {
         _executeSearch(item.query, item.isAi);
       });
 
-      listEl.appendChild(btn);
+      fragment.appendChild(btn);
     });
+
+    listEl.replaceChildren(fragment);
 
     // Only show Clear history button in footer if there is active history and input is empty
     const clearHistoryBtn = document.getElementById('btn-clear-history');
@@ -822,27 +900,46 @@ const Search = (() => {
     const requestId = ++activeSuggestionRequestId;
     const query = (rawQuery || '').trim().toLowerCase();
 
-    // Pass 1: Instant synchronous render with 0ms delay!
-    const cachedSugg = query ? (suggestionsMemoryCache.get(query) || []) : [];
-    const initialItems = _buildItems(rawQuery, cachedSugg);
-    _renderItemsToDOM(initialItems, query, requestId);
+    // 1. If empty query: render history + trending immediately
+    if (!query) {
+      const items = _buildItems('', []);
+      _renderItemsToDOM(items, '', requestId);
 
-    // Pass 2: Background asynchronous refresh if suggestions are not yet cached
-    if (query && !suggestionsMemoryCache.has(query)) {
-      _fetchGoogleSuggestions(query).then(freshSugg => {
-        if (menuOpen && requestId === activeSuggestionRequestId) {
-          const updatedItems = _buildItems(rawQuery, freshSugg);
-          _renderItemsToDOM(updatedItems, query, requestId);
-        }
-      });
-    } else if (!isAiMode && !query && searchHistory.length < 8 && (!cachedTrending || (Date.now() - lastTrendingFetchTime > 30 * 60 * 1000))) {
-      _fetchTrendingSearches().then(() => {
-        if (menuOpen && requestId === activeSuggestionRequestId) {
-          const updatedItems = _buildItems(rawQuery, []);
-          _renderItemsToDOM(updatedItems, query, requestId);
-        }
-      });
+      if (!isAiMode && (!cachedTrending || (Date.now() - lastTrendingFetchTime > 30 * 60 * 1000))) {
+        _fetchTrendingSearches().then(() => {
+          if (menuOpen && requestId === activeSuggestionRequestId && !originalUserTyped) {
+            const updatedItems = _buildItems('', []);
+            _renderItemsToDOM(updatedItems, '', requestId);
+          }
+        });
+      }
+      return;
     }
+
+    // 2. Query is already cached: render immediately with 0ms delay
+    if (suggestionsMemoryCache.has(query)) {
+      const cachedSugg = suggestionsMemoryCache.get(query) || [];
+      const items = _buildItems(rawQuery, cachedSugg);
+      _renderItemsToDOM(items, query, requestId);
+      return;
+    }
+
+    // 3. Query is NOT in cache yet: Fetch fresh suggestions from Google.
+    // Dropdown Stutter Elimination:
+    // If the list already has items on screen, do NOT wipe the DOM down to a 1-item list!
+    // Keeping existing items stable while the network response is in flight completely eliminates
+    // the jittery "shutter" where the menu collapsed down to 1 item and expanded back on each keystroke.
+    if (!listEl.children || listEl.children.length === 0) {
+      const initialItems = _buildItems(rawQuery, []);
+      _renderItemsToDOM(initialItems, query, requestId);
+    }
+
+    _fetchGoogleSuggestions(query).then(freshSugg => {
+      if (menuOpen && requestId === activeSuggestionRequestId) {
+        const updatedItems = _buildItems(rawQuery, freshSugg);
+        _renderItemsToDOM(updatedItems, query, requestId);
+      }
+    });
   }
 
   function _executeSearch(query, itemIsAi) {
@@ -1273,6 +1370,7 @@ const Search = (() => {
     input.addEventListener('input', () => {
       _hideShortcuts();
       originalUserTyped = input.value;
+      selectedIndex = -1;
 
       if (!menuOpen) {
         _openMenu();
