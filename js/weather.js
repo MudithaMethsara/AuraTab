@@ -706,13 +706,19 @@ const Weather = (() => {
 
     // 2. Generate smooth SVG curve for 24 hours (ViewBox: 0 0 240 44)
     const maxVal = Math.max(10, Math.ceil(maxUv || 10));
-    const currentHour = new Date().getHours();
-    const pts = profile.map((p, i) => {
-      const x = 4 + (i * 10.08);
-      const ratio = Math.min(1, Math.max(0, p.uv / maxVal));
+
+    // Build 25 continuous points (hour 0 to hour 24) for a seamless 24-hour cycle
+    // exactly matching the 24h ticks (12 AM, 6 AM, 12 PM, 6 PM, 12 AM)
+    const pts = [];
+    for (let h = 0; h <= 24; h++) {
+      const matchHour = h < 24 ? h : 0;
+      const p = profile.find(item => item.hour === matchHour);
+      const uv = p ? (p.uv || 0) : 0;
+      const x = (h / 24) * 240;
+      const ratio = Math.min(1, Math.max(0, uv / maxVal));
       const y = 40 - (ratio * 34);
-      return { x, y, hour: p.hour, uv: p.uv };
-    });
+      pts.push({ x, y, hour: h, uv });
+    }
 
     let dLine = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
     for (let i = 1; i < pts.length; i++) {
@@ -722,11 +728,23 @@ const Weather = (() => {
       dLine += ` C ${cpX.toFixed(1)} ${prev.y.toFixed(1)}, ${cpX.toFixed(1)} ${cur.y.toFixed(1)}, ${cur.x.toFixed(1)} ${cur.y.toFixed(1)}`;
     }
 
-    const dArea = `${dLine} L ${pts[pts.length - 1].x.toFixed(1)} 42 L ${pts[0].x.toFixed(1)} 42 Z`;
+    const dArea = `${dLine} L 240 42 L 0 42 Z`;
     const uv3Y = (40 - ((3 / maxVal) * 34)).toFixed(1);
 
-    const curPt = pts[currentHour] || pts[12];
-    const curInfo = _getUvDetails(curPt.uv);
+    // Precise live current time indicator with real-time minute interpolation
+    const now = new Date();
+    const currentExactHour = now.getHours() + (now.getMinutes() / 60) + (now.getSeconds() / 3600);
+    const curX = Math.min(238, Math.max(2, (currentExactHour / 24) * 240));
+
+    const h0 = Math.floor(currentExactHour);
+    const h1 = Math.min(24, h0 + 1);
+    const pt0 = pts[h0] || pts[0];
+    const pt1 = pts[h1] || pts[pts.length - 1];
+    const frac = currentExactHour - h0;
+    const curY = pt0.y + (pt1.y - pt0.y) * frac;
+    const liveUv = Math.max(0, pt0.uv + (pt1.uv - pt0.uv) * frac);
+    const curInfo = _getUvDetails(liveUv);
+    const timeLabel = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
     wrap.innerHTML = `
       <svg class="uv-sparkline-svg" viewBox="0 0 240 44" preserveAspectRatio="none">
@@ -745,15 +763,18 @@ const Weather = (() => {
           </linearGradient>
         </defs>
         <!-- UV 3 threshold reference line -->
-        <line x1="4" y1="${uv3Y}" x2="236" y2="${uv3Y}" stroke="rgba(255,255,255,0.14)" stroke-dasharray="2 3" stroke-width="1"/>
+        <line x1="0" y1="${uv3Y}" x2="240" y2="${uv3Y}" stroke="rgba(255,255,255,0.14)" stroke-dasharray="2 3" stroke-width="1"/>
         <!-- Filled daylight curve area -->
         <path d="${dArea}" fill="url(#uv-spark-grad)"/>
         <!-- Luminous curve stroke -->
         <path d="${dLine}" fill="none" stroke="url(#uv-spark-stroke)" stroke-width="2.2" stroke-linecap="round"/>
         <!-- Current hour vertical marker -->
-        <line x1="${curPt.x.toFixed(1)}" y1="4" x2="${curPt.x.toFixed(1)}" y2="42" stroke="${curInfo.color}" stroke-opacity="0.5" stroke-dasharray="2 2" stroke-width="1"/>
-        <!-- Current hour glowing dot indicator -->
-        <circle cx="${curPt.x.toFixed(1)}" cy="${curPt.y.toFixed(1)}" r="4" fill="#ffffff" stroke="${curInfo.color}" stroke-width="2" style="filter: drop-shadow(0 0 6px ${curInfo.color});"/>
+        <line x1="${curX.toFixed(1)}" y1="4" x2="${curX.toFixed(1)}" y2="42" stroke="${curInfo.color}" stroke-opacity="0.5" stroke-dasharray="2 2" stroke-width="1"/>
+        <!-- Current hour glowing dot indicator with tooltip -->
+        <g class="uv-current-indicator">
+          <title>Current UV: ${liveUv.toFixed(1)} (${curInfo.label}) at ${timeLabel}</title>
+          <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="4.5" fill="#ffffff" stroke="${curInfo.color}" stroke-width="2" style="filter: drop-shadow(0 0 6px ${curInfo.color}); cursor: pointer;"/>
+        </g>
       </svg>
     `;
   }

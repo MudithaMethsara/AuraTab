@@ -3726,14 +3726,27 @@ body:has(#search-input:focus) .bottom-bar {
 }
 
 .uv-curve-ticks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 14px;
   font-size: 9px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
-  padding: 3px 2px 0;
+  margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
+
+.uv-curve-ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.uv-curve-ticks span:nth-child(1) { left: 0%; transform: none; }
+.uv-curve-ticks span:nth-child(2) { left: 25%; }
+.uv-curve-ticks span:nth-child(3) { left: 50%; }
+.uv-curve-ticks span:nth-child(4) { left: 75%; }
+.uv-curve-ticks span:nth-child(5) { right: 0%; transform: none; }
 
 [data-theme="light"] .uv-curve-ticks {
   color: #64748b;
