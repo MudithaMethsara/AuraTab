@@ -50,19 +50,21 @@ const AccountAvatar = (() => {
       const candidate = (syncData && syncData.customAvatar) || (localData && localData.customAvatar);
 
       if (candidate) {
-        if (candidate.startsWith('data:image/')) {
-          currentAvatar = candidate;
-        } else {
-          const ok = await _validateImageUrl(candidate);
-          if (ok) {
-            currentAvatar = candidate;
-          } else {
-            // Broken or blocked URL - immediately clear it from storage!
-            await Storage.setSync({ customAvatar: null });
-            await Storage.setLocal({ customAvatar: null });
-            currentAvatar = DEFAULT_AVATAR;
-          }
+        currentAvatar = candidate;
+        _updateDom(currentAvatar);
+
+        // If it's a remote URL, validate asynchronously in background without blocking paint
+        if (!candidate.startsWith('data:image/')) {
+          _validateImageUrl(candidate).then(ok => {
+            if (!ok) {
+              Storage.setSync({ customAvatar: null });
+              Storage.setLocal({ customAvatar: null });
+              currentAvatar = DEFAULT_AVATAR;
+              _updateDom(currentAvatar);
+            }
+          });
         }
+        return;
       } else {
         currentAvatar = DEFAULT_AVATAR;
       }
@@ -358,22 +360,25 @@ const App = (() => {
 
   async function init() {
     try {
-      // Load i18n first
-      await I18n.load();
+      // 1. Preload storage in a single batch IPC call to populate in-memory cache
+      await Storage.preloadAll();
 
-      // Load theme (may already be applied by bootstrap)
-      await Theme.load();
+      // 2. Load i18n & Theme (now reads from synchronous in-memory cache)
+      await Promise.all([
+        I18n.load(),
+        Theme.load()
+      ]);
 
-      // Initialize account avatar (load cached / probe Google session)
-      await AccountAvatar.init();
+      // 3. Fast Account avatar from cache
+      AccountAvatar.init();
 
-      // Apply widget visibility
+      // 4. Apply widget visibility
       await _applyWidgetVisibility();
 
-      // Immediate Greeting based on current time (zero lag)
+      // 5. Immediate Greeting based on current time (zero lag)
       updateGreeting();
 
-      // Init all modules (non-blocking)
+      // 6. Init all modules concurrently (non-blocking, fast resolution from memory cache)
       await Promise.all([
         Clock.init(),
         Weather.init(),
@@ -385,13 +390,10 @@ const App = (() => {
         Wallpaper.init(),
       ]);
 
-      // Init settings
+      // 7. Init settings (lazy UI)
       Settings.init();
 
-      // Greeting
-      updateGreeting();
-
-      // Google Apps popover
+      // 8. Google Apps popover
       _setupGoogleApps();
 
       // Clock click to toggle style (and legacy button if present)
@@ -792,8 +794,17 @@ const App = (() => {
       });
     }
 
+    let gridsRendered = false;
+    function ensureGridsRendered() {
+      if (!gridsRendered) {
+        renderGrids();
+        gridsRendered = true;
+      }
+    }
+
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      ensureGridsRendered();
       const isOpen = popover.style.display !== 'none';
       if (isEditing) updateEditState(false, false);
       _closeAll();
@@ -836,7 +847,14 @@ const App = (() => {
       }
     });
 
-    renderGrids();
+    // Lazy build Google Apps grid on idle if not opened earlier
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => ensureGridsRendered(), { timeout: 3000 });
+      } else {
+        setTimeout(() => ensureGridsRendered(), 1500);
+      }
+    }
   }
 
   function _closeAll() {

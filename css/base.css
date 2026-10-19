@@ -167,6 +167,24 @@ body {
   animation: gradientShift 20s ease infinite;
 }
 
+/* Pause off-screen body animation when wallpaper is actively covering it to save CPU and battery */
+[data-wallpaper-active="true"] body {
+  animation: none !important;
+}
+
+/* Performance containment: skip layout & paint trees for hidden drawers and panels */
+.side-panel[style*="display: none"],
+.side-panel[style*="display:none"],
+.settings-panel[style*="display: none"],
+.settings-panel[style*="display:none"],
+.popover[style*="display: none"],
+.popover[style*="display:none"],
+.modal-overlay[style*="display: none"],
+.modal-overlay[style*="display:none"] {
+  content-visibility: hidden;
+  contain: layout style paint;
+}
+
 /* Wallpaper layer */
 .wallpaper-layer {
   position: fixed;

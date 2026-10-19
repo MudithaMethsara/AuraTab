@@ -246,8 +246,34 @@ const Wallpaper = (() => {
     overlay.style.background = `rgba(0, 0, 0, ${settings.dim / 100})`;
   }
 
-  /** Measure image luminance and set text color attribute */
+  /**
+   * Precomputed luminance map for curated wallpapers.
+   * All curated wallpapers are deep high-contrast dark tones, allowing instant 0ms adaptation.
+   */
+  const CURATED_LUMINANCE = {
+    patagonia: 0.28, aurora: 0.15, alps: 0.32, cyberpunk: 0.20,
+    ocean: 0.25, forest: 0.18, nebula: 0.12, desert: 0.38,
+    fuji: 0.26, fjord: 0.22, abstract: 0.21, minimal: 0.35
+  };
+
+  /** Measure image luminance and set text color attribute with 0ms caching */
   function _measureAndAdapt(url) {
+    // 1. Fast path: curated wallpapers have precomputed luminance
+    if (currentSource === 'curated' && CURATED_LUMINANCE[currentCuratedId] !== undefined) {
+      const isLight = CURATED_LUMINANCE[currentCuratedId] > 0.6;
+      document.documentElement.setAttribute('data-wallpaper-light', isLight ? 'true' : 'false');
+      return;
+    }
+
+    // 2. Fast path: check cached luminance in localStorage for custom/upload images
+    const cacheKey = 'hometab_wall_lum_' + (currentSource === 'daily' ? 'daily' : (currentSource === 'upload' ? 'upload' : String(url).slice(-32)));
+    const cachedLum = localStorage.getItem(cacheKey);
+    if (cachedLum !== null) {
+      document.documentElement.setAttribute('data-wallpaper-light', cachedLum === 'true' ? 'true' : 'false');
+      return;
+    }
+
+    // 3. Fallback: measure asynchronously once and cache the result
     const img = new Image();
     if (!url.startsWith('data:')) {
       img.crossOrigin = 'anonymous';
@@ -257,6 +283,7 @@ const Wallpaper = (() => {
         const luminance = Theme.measureLuminance(img);
         const isLight = luminance > 0.6;
         document.documentElement.setAttribute('data-wallpaper-light', isLight ? 'true' : 'false');
+        try { localStorage.setItem(cacheKey, isLight ? 'true' : 'false'); } catch (_) {}
       } catch (e) {
         document.documentElement.setAttribute('data-wallpaper-light', 'false');
       }

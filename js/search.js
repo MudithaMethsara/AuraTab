@@ -2118,12 +2118,16 @@ const Search = (() => {
       }
     }, true);
 
-    // Auto-adjust dropdown height on window resize
+    // Auto-adjust dropdown height on window resize with rAF throttling to prevent layout thrashing
+    let resizeRaf = null;
     window.addEventListener('resize', () => {
-      if (menuOpen) {
-        _adjustDropdownMaxHeight();
+      if (menuOpen && !resizeRaf) {
+        resizeRaf = requestAnimationFrame(() => {
+          resizeRaf = null;
+          if (menuOpen) _adjustDropdownMaxHeight();
+        });
       }
-    });
+    }, { passive: true });
   }
 
   function _updateSelection(items, input) {

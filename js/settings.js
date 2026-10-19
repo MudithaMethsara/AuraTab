@@ -5,9 +5,22 @@
 'use strict';
 
 const Settings = (() => {
+  let _uiBuilt = false;
+
   async function init() {
-    _buildSettingsUI();
     _setupListeners();
+    // Schedule lazy construction during browser idle time so it never blocks tab launch
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          if (!_uiBuilt) _buildSettingsUI();
+        }, { timeout: 2500 });
+      } else {
+        setTimeout(() => {
+          if (!_uiBuilt) _buildSettingsUI();
+        }, 1200);
+      }
+    }
   }
 
   let activeTabId = 'style';
@@ -23,7 +36,9 @@ const Settings = (() => {
     }
 
     const body = document.getElementById('settings-body');
+    if (!body) return;
     body.innerHTML = '';
+    _uiBuilt = true;
 
     // === TOP CATEGORY NAVIGATION TABS ===
     const tabs = [

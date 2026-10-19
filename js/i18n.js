@@ -65,34 +65,54 @@ const I18n = (() => {
   /** Load language file */
   async function load(lang) {
     lang = lang || detectLanguage();
+    currentLang = lang;
+    localStorage.setItem('hometab_lang', lang);
+
+    // Set direction
+    const isRtl = RTL_LANGS.includes(lang.split('-')[0]);
+    document.documentElement.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('lang', lang);
+
+    // 1. Instant fast-path for English: use pre-embedded dictionary with 0ms network latency
+    if (lang === 'en') {
+      strings = getEnglishFallback();
+      loaded = true;
+      applyToDOM();
+      return;
+    }
+
+    // 2. Fast-path: check cached JSON in localStorage for localized strings
+    const cacheKey = 'hometab_i18n_strings_' + lang;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        strings = JSON.parse(cached);
+        loaded = true;
+        applyToDOM();
+      } catch (_) {}
+    }
+
+    // 3. Fetch from disk/network and update cache
     try {
       const resp = await fetch(`i18n/${lang}.json`);
       if (!resp.ok) {
-        // Fallback to English
-        if (lang !== 'en') {
-          console.warn(`Language ${lang} not found, falling back to English`);
-          return load('en');
+        if (!loaded) {
+          strings = getEnglishFallback();
+          loaded = true;
+          applyToDOM();
         }
-        throw new Error('Could not load English strings');
+        return;
       }
       strings = await resp.json();
-      currentLang = lang;
       loaded = true;
-      localStorage.setItem('hometab_lang', lang);
-
-      // Set direction
-      const isRtl = RTL_LANGS.includes(lang.split('-')[0]);
-      document.documentElement.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
-      document.documentElement.setAttribute('lang', lang);
-
-      // Apply translations to DOM
+      try { localStorage.setItem(cacheKey, JSON.stringify(strings)); } catch (_) {}
       applyToDOM();
     } catch (e) {
-      console.warn('i18n load error:', e);
-      // Use inline English fallback
-      strings = getEnglishFallback();
-      currentLang = 'en';
-      loaded = true;
+      if (!loaded) {
+        strings = getEnglishFallback();
+        loaded = true;
+        applyToDOM();
+      }
     }
   }
 

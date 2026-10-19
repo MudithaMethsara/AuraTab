@@ -12,7 +12,34 @@ const Clock = (() => {
   let font = 'Outfit';
   let size = 100; // percentage 60-140
   let animFrameId = null;
+  let tickTimerId = null;
+  let tickIntervalId = null;
   let markersCreated = false;
+
+  // Cached DOM elements to eliminate continuous querySelector / getElementById overhead
+  let dom = null;
+
+  function _getDom() {
+    if (!dom) {
+      dom = {
+        digital: document.getElementById('clock-digital'),
+        analog: document.getElementById('clock-analog'),
+        time: document.getElementById('clock-time'),
+        ampm: document.getElementById('clock-ampm'),
+        sec: document.getElementById('clock-seconds'),
+        topTime: document.getElementById('top-time'),
+        date: document.getElementById('clock-date'),
+        greetingDate: document.getElementById('greeting-date'),
+        topDate: document.getElementById('top-date'),
+        clockDateTop: document.getElementById('clock-date-top'),
+        hourHand: document.getElementById('clock-hour-hand'),
+        minuteHand: document.getElementById('clock-minute-hand'),
+        secondHand: document.getElementById('clock-second-hand'),
+        greetingText: document.getElementById('greeting-text'),
+      };
+    }
+    return dom;
+  }
 
   const FONT_MAP = {
     'Outfit': "'Outfit', system-ui, -apple-system, sans-serif",
@@ -34,6 +61,7 @@ const Clock = (() => {
     font = data.clockFont || localStorage.getItem('hometab_clock_font') || 'Outfit';
     size = data.clockSize || parseInt(localStorage.getItem('hometab_clock_size')) || 100;
 
+    _getDom();
     _applyFont(font);
     _applySize(size);
     _setupAnalogMarkers();
@@ -41,7 +69,7 @@ const Clock = (() => {
     _startTick();
     _setupHeaderClockListener();
 
-    // Pause when hidden
+    // Pause when hidden to preserve 100% CPU and battery
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         _stopTick();
@@ -52,21 +80,19 @@ const Clock = (() => {
   }
 
   function _showMode() {
-    const digital = document.getElementById('clock-digital');
-    const analog = document.getElementById('clock-analog');
-    const secondHand = document.getElementById('clock-second-hand');
+    const d = _getDom();
 
     if (mode === 'digital') {
-      if (digital) digital.style.display = '';
-      if (analog) analog.style.display = 'none';
+      if (d.digital) d.digital.style.display = '';
+      if (d.analog) d.analog.style.display = 'none';
     } else {
-      if (digital) digital.style.display = 'none';
-      if (analog) analog.style.display = '';
+      if (d.digital) d.digital.style.display = 'none';
+      if (d.analog) d.analog.style.display = '';
     }
 
     // Always show the signature blue second hand on the rounded clock
-    if (secondHand) {
-      secondHand.style.display = '';
+    if (d.secondHand) {
+      d.secondHand.style.display = '';
     }
 
     document.querySelectorAll('.clock-style-mode-btn, .clock-style-btn').forEach(btn => {
@@ -78,42 +104,76 @@ const Clock = (() => {
     if (newMode !== 'digital' && newMode !== 'analog') return;
     mode = newMode;
     _showMode();
+    _startTick();
     _save();
   }
 
   function toggle() {
     mode = mode === 'digital' ? 'analog' : 'digital';
     _showMode();
+    _startTick();
     _save();
   }
 
   function set24h(val) {
     use24h = val;
+    _update();
     _save();
   }
 
   function setShowSeconds(val) {
     showSeconds = val;
-    const secondHand = document.getElementById('clock-second-hand');
-    if (secondHand) {
-      secondHand.style.display = showSeconds ? '' : 'none';
+    const d = _getDom();
+    if (d.secondHand) {
+      d.secondHand.style.display = showSeconds ? '' : 'none';
     }
+    _startTick();
     _save();
-  }
-
-  function _startTick() {
-    _stopTick();
-    const tick = () => {
-      _update();
-      animFrameId = requestAnimationFrame(tick);
-    };
-    tick();
   }
 
   function _stopTick() {
     if (animFrameId) {
       cancelAnimationFrame(animFrameId);
       animFrameId = null;
+    }
+    if (tickTimerId) {
+      clearTimeout(tickTimerId);
+      tickTimerId = null;
+    }
+    if (tickIntervalId) {
+      clearInterval(tickIntervalId);
+      tickIntervalId = null;
+    }
+  }
+
+  function _startTick() {
+    _stopTick();
+    if (document.hidden) return;
+
+    if (mode === 'analog') {
+      const tick = () => {
+        _update();
+        animFrameId = requestAnimationFrame(tick);
+      };
+      tick();
+      return;
+    }
+
+    // Digital mode: adaptive sleeping to eliminate CPU drain
+    _update();
+    const now = new Date();
+    if (showSeconds) {
+      const msToNextSecond = Math.max(10, 1000 - now.getMilliseconds());
+      tickTimerId = setTimeout(() => {
+        _update();
+        tickIntervalId = setInterval(_update, 1000);
+      }, msToNextSecond);
+    } else {
+      const msToNextMinute = Math.max(50, (60 - now.getSeconds()) * 1000 - now.getMilliseconds());
+      tickTimerId = setTimeout(() => {
+        _update();
+        tickIntervalId = setInterval(_update, 60000);
+      }, msToNextMinute);
     }
   }
 
@@ -130,7 +190,7 @@ const Clock = (() => {
     // Date line
     _updateDate(now);
 
-    // Live Greeting check (always dynamically in sync with current hour)
+    // Live Greeting check (dynamically in sync with current hour)
     _updateGreetingTime(now);
   }
 
@@ -143,22 +203,22 @@ const Clock = (() => {
       if (typeof App !== 'undefined' && App.updateGreeting) {
         App.updateGreeting();
       } else {
-        const greetingEl = document.getElementById('greeting-text');
-        if (greetingEl) {
+        const d = _getDom();
+        if (d.greetingText) {
           const g = (hour >= 5 && hour < 12) ? 'Good morning' :
             (hour >= 12 && hour < 17) ? 'Good afternoon' :
             (hour >= 17 && hour < 22) ? 'Good evening' : 'Good night';
-          greetingEl.textContent = g;
+          d.greetingText.textContent = g;
         }
       }
     }
   }
 
+  let _lastDigitalKey = '';
+  let _lastTopTimeKey = '';
+
   function _updateDigital(now) {
-    const timeEl = document.getElementById('clock-time');
-    const ampmEl = document.getElementById('clock-ampm');
-    const secEl = document.getElementById('clock-seconds');
-    const topTimeEl = document.getElementById('top-time');
+    const d = _getDom();
 
     let hours = now.getHours();
     const minutes = now.getMinutes();
@@ -170,44 +230,52 @@ const Clock = (() => {
       hours = hours % 12 || 12;
     }
 
-    // Main clock: bold "16:53" (matches blue reference image)
     const timeStr = (use24h ? String(hours).padStart(2, '0') : String(hours)) + ':' + String(minutes).padStart(2, '0');
+    const digitalKey = `${timeStr}|${ampm}|${showSeconds ? seconds : ''}`;
 
-    if (timeEl) {
-      timeEl.textContent = timeStr;
-    }
+    if (digitalKey !== _lastDigitalKey) {
+      _lastDigitalKey = digitalKey;
 
-    if (secEl) {
-      if (showSeconds) {
-        secEl.textContent = String(seconds).padStart(2, '0');
-        secEl.style.display = '';
-      } else {
-        secEl.style.display = 'none';
+      if (d.time && d.time.textContent !== timeStr) {
+        d.time.textContent = timeStr;
+      }
+
+      if (d.sec) {
+        if (showSeconds) {
+          d.sec.textContent = String(seconds).padStart(2, '0');
+          if (d.sec.style.display !== '') d.sec.style.display = '';
+        } else if (d.sec.style.display !== 'none') {
+          d.sec.style.display = 'none';
+        }
+      }
+
+      if (d.ampm) {
+        if (!use24h) {
+          d.ampm.textContent = ampm;
+          if (d.ampm.style.display !== '') d.ampm.style.display = '';
+        } else if (d.ampm.style.display !== 'none') {
+          d.ampm.style.display = 'none';
+        }
       }
     }
 
-    if (ampmEl) {
-      if (!use24h) {
-        ampmEl.textContent = ampm;
-        ampmEl.style.display = '';
-      } else {
-        ampmEl.style.display = 'none';
-      }
-    }
-
-    if (topTimeEl) {
-      if (use24h) {
+    if (d.topTime) {
+      const topKey = `${use24h ? now.getHours() : hours}:${minutes}:${showSeconds ? seconds : ''}:${ampm}`;
+      if (topKey !== _lastTopTimeKey) {
+        _lastTopTimeKey = topKey;
         const secPart = showSeconds ? `<span class="header-clock-sec">:${String(seconds).padStart(2, '0')}</span>` : '';
-        topTimeEl.innerHTML = `${String(now.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}${secPart}`;
-      } else {
-        const secPart = showSeconds ? `<span class="header-clock-sec">:${String(seconds).padStart(2, '0')}</span>` : '';
-        const ampmPart = `<span class="header-clock-ampm">${ampm}</span>`;
-        topTimeEl.innerHTML = `${hours}:${String(minutes).padStart(2, '0')}${secPart}${ampmPart}`;
+        if (use24h) {
+          d.topTime.innerHTML = `${String(now.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}${secPart}`;
+        } else {
+          const ampmPart = `<span class="header-clock-ampm">${ampm}</span>`;
+          d.topTime.innerHTML = `${hours}:${String(minutes).padStart(2, '0')}${secPart}${ampmPart}`;
+        }
       }
     }
   }
 
   function _updateAnalog(now) {
+    const d = _getDom();
     const hours = now.getHours();
     const minutes = now.getMinutes();
     const seconds = now.getSeconds();
@@ -218,18 +286,14 @@ const Clock = (() => {
     const minDeg = (minutes + seconds / 60) * 6;
     const hourDeg = ((hours % 12) + minutes / 60) * 30;
 
-    const hourHand = document.getElementById('clock-hour-hand');
-    const minuteHand = document.getElementById('clock-minute-hand');
-    const secondHand = document.getElementById('clock-second-hand');
-
-    if (hourHand) {
-      hourHand.setAttribute('transform', `rotate(${hourDeg} 100 100)`);
+    if (d.hourHand) {
+      d.hourHand.setAttribute('transform', `rotate(${hourDeg} 100 100)`);
     }
-    if (minuteHand) {
-      minuteHand.setAttribute('transform', `rotate(${minDeg} 100 100)`);
+    if (d.minuteHand) {
+      d.minuteHand.setAttribute('transform', `rotate(${minDeg} 100 100)`);
     }
-    if (secondHand) {
-      secondHand.setAttribute('transform', `rotate(${secDeg} 100 100)`);
+    if (d.secondHand) {
+      d.secondHand.setAttribute('transform', `rotate(${secDeg} 100 100)`);
     }
   }
 

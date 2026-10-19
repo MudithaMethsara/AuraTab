@@ -143,3 +143,12 @@
   border-radius: inherit;
   z-index: -1;
 }
+
+/* GPU layer promotion for silky-smooth 60fps glass drawers */
+.side-panel,
+.settings-panel,
+.modal-overlay {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
