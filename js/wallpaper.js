@@ -200,8 +200,9 @@ const Wallpaper = (() => {
     // Clear solid/gradient FIRST so it doesn't wipe our image
     imgEl.style.background = '';
     
-    // Apply image with !important priority
-    imgEl.style.setProperty('background-image', `url("${imageUrl}")`, 'important');
+    // Apply image with !important priority (escape quotes to prevent CSS injection)
+    const safeCssUrl = String(imageUrl).replace(/["'\r\n\\]/g, encodeURIComponent);
+    imgEl.style.setProperty('background-image', `url("${safeCssUrl}")`, 'important');
     imgEl.style.setProperty('background-size', 'cover', 'important');
     imgEl.style.setProperty('background-position', 'center', 'important');
     imgEl.style.setProperty('background-repeat', 'no-repeat', 'important');

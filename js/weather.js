@@ -414,7 +414,9 @@ const Weather = (() => {
         timezone: 'auto',
       });
 
-      const resp = await fetch(`${WEATHER_URL}?${params}`);
+      const resp = await fetch(`${WEATHER_URL}?${params}`, {
+        signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(9000) : undefined
+      });
       if (!resp.ok) throw new Error('Weather fetch failed');
       const result = await resp.json();
 
@@ -949,7 +951,9 @@ const Weather = (() => {
         count: 8,
         language: I18n.currentLang || 'en',
       });
-      const resp = await fetch(`${GEOCODING_URL}?${params}`);
+      const resp = await fetch(`${GEOCODING_URL}?${params}`, {
+        signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(6000) : undefined
+      });
       if (!resp.ok) return [];
       const data = await resp.json();
       return (data.results || []).map(r => ({

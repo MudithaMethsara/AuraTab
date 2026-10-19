@@ -233,15 +233,20 @@ const Clock = (() => {
     }
   }
 
+  let lastDateCacheKey = '';
+
   function _updateDate(now) {
+    const lang = I18n.currentLang || navigator.language || 'en';
+    const dayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${lang}`;
+    if (dayKey === lastDateCacheKey) return;
+    lastDateCacheKey = dayKey;
+
     const dateEl = document.getElementById('clock-date');
     const greetingDateEl = document.getElementById('greeting-date');
     const topDateEl = document.getElementById('top-date');
     const clockDateTopEl = document.getElementById('clock-date-top');
 
     try {
-      const lang = I18n.currentLang || navigator.language || 'en';
-
       // Lock screen format: "Tue Apr 1" (matching iOS reference)
       const shortWeekday = new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(now);
       const dayNum = now.getDate();

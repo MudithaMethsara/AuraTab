@@ -176,8 +176,14 @@ const Storage = (() => {
   }
 
   function _localSet(data) {
+    if (!data || typeof data !== 'object') return;
     Object.keys(data).forEach(k => {
-      localStorage.setItem('hometab_' + k, JSON.stringify(data[k]));
+      if (k === '__proto__' || k === 'constructor' || k === 'prototype') return;
+      try {
+        localStorage.setItem('hometab_' + k, JSON.stringify(data[k]));
+      } catch (e) {
+        console.warn('localStorage quota or write error:', e);
+      }
     });
   }
 
@@ -197,12 +203,20 @@ const Storage = (() => {
   /** Import settings from JSON */
   async function importAll(data) {
     if (!data || typeof data !== 'object') throw new Error('Invalid data');
-    const { todos, weatherCache, _exportDate, ...syncData } = data;
+    const safeData = {};
+    const DANGEROUS = ['__proto__', 'constructor', 'prototype', '_exportDate'];
+    Object.keys(data).forEach(key => {
+      if (!DANGEROUS.includes(key)) {
+        safeData[key] = data[key];
+      }
+    });
+
+    const { todos, weatherCache, ...syncData } = safeData;
     if (Object.keys(syncData).length > 0) {
       await setSync(syncData);
     }
-    if (todos) await setLocal({ todos });
-    if (weatherCache) await setLocal({ weatherCache });
+    if (todos && Array.isArray(todos)) await setLocal({ todos });
+    if (weatherCache && typeof weatherCache === 'object') await setLocal({ weatherCache });
   }
 
   /** Reset everything */

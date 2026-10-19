@@ -79,9 +79,10 @@
     const wallSource = localStorage.getItem('hometab_wallpaperSource');
     const wallData = localStorage.getItem('hometab_user_wallpaper_data');
     if (wallSource === 'upload' && wallData) {
+      const safeWallData = String(wallData).replace(/["'\r\n\\]/g, encodeURIComponent);
       const style = document.createElement('style');
       style.id = 'bootstrap-wallpaper-style';
-      style.textContent = `.wallpaper-img { background-image: url("${wallData}") !important; }`;
+      style.textContent = `.wallpaper-img { background-image: url("${safeWallData}") !important; }`;
       document.head.appendChild(style);
     }
 

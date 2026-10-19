@@ -94,8 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (ua.includes('Android')) os = 'Android';
     else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
 
+    const manifestVer = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) 
+      ? chrome.runtime.getManifest().version 
+      : '1.1.0';
+
     return {
-      version: 'v1.0.0',
+      version: `v${manifestVer}`,
       browser: `${browser} (${navigator.userAgentData ? navigator.userAgentData.platform : os})`,
       os: os,
       screen: `${window.screen.width}x${window.screen.height}`,

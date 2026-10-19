@@ -102,10 +102,9 @@ const AccountAvatar = (() => {
   function _updateDom(src) {
     document.querySelectorAll('.account-avatar-img, .settings-avatar-preview').forEach(img => {
       const onErr = () => {
-        img.removeEventListener('error', onErr);
         img.src = DEFAULT_AVATAR;
       };
-      img.addEventListener('error', onErr);
+      img.addEventListener('error', onErr, { once: true });
       img.src = src || DEFAULT_AVATAR;
     });
   }

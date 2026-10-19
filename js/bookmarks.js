@@ -255,10 +255,13 @@ const Bookmarks = (() => {
         if (activeContextIsFolder) {
           _navigateToFolder(activeContextNode.id);
         } else if (activeContextNode.url) {
-          if (typeof chrome !== 'undefined' && chrome.tabs) {
-            chrome.tabs.create({ url: activeContextNode.url });
-          } else {
-            window.open(activeContextNode.url, '_blank');
+          const safeUrl = _sanitizeBookmarkUrl(activeContextNode.url);
+          if (safeUrl !== '#') {
+            if (typeof chrome !== 'undefined' && chrome.tabs) {
+              chrome.tabs.create({ url: safeUrl });
+            } else {
+              window.open(safeUrl, '_blank', 'noopener,noreferrer');
+            }
           }
         }
         _hideContextMenu();
@@ -269,10 +272,13 @@ const Bookmarks = (() => {
       newWinBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!activeContextNode || !activeContextNode.url) return;
-        if (typeof chrome !== 'undefined' && chrome.windows && chrome.windows.create) {
-          chrome.windows.create({ url: activeContextNode.url });
-        } else {
-          window.open(activeContextNode.url, '_blank', 'popup=no');
+        const safeUrl = _sanitizeBookmarkUrl(activeContextNode.url);
+        if (safeUrl !== '#') {
+          if (typeof chrome !== 'undefined' && chrome.windows && chrome.windows.create) {
+            chrome.windows.create({ url: safeUrl });
+          } else {
+            window.open(safeUrl, '_blank', 'noopener,noreferrer,popup=no');
+          }
         }
         _hideContextMenu();
       });
@@ -282,17 +288,20 @@ const Bookmarks = (() => {
       incognitoBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!activeContextNode || !activeContextNode.url) return;
-        if (typeof chrome !== 'undefined' && chrome.windows && chrome.windows.create) {
-          chrome.windows.create({ url: activeContextNode.url, incognito: true }, () => {
-            if (chrome.runtime.lastError) {
-              if (typeof App !== 'undefined' && App.showToast) {
-                App.showToast('Incognito mode unavailable: Allow in Incognito in extension settings.');
+        const safeUrl = _sanitizeBookmarkUrl(activeContextNode.url);
+        if (safeUrl !== '#') {
+          if (typeof chrome !== 'undefined' && chrome.windows && chrome.windows.create) {
+            chrome.windows.create({ url: safeUrl, incognito: true }, () => {
+              if (chrome.runtime.lastError) {
+                if (typeof App !== 'undefined' && App.showToast) {
+                  App.showToast('Incognito mode unavailable: Allow in Incognito in extension settings.');
+                }
               }
+            });
+          } else {
+            if (typeof App !== 'undefined' && App.showToast) {
+              App.showToast('Incognito mode is not supported in this browser');
             }
-          });
-        } else {
-          if (typeof App !== 'undefined' && App.showToast) {
-            App.showToast('Incognito mode is not supported in this browser');
           }
         }
         _hideContextMenu();
@@ -1117,7 +1126,7 @@ const Bookmarks = (() => {
       // Bookmark Link
       const a = document.createElement('a');
       a.className = 'bookmark-item bookmark-link';
-      const safeUrl = (node.url && !/^javascript:/i.test(node.url.trim())) ? node.url : '#';
+      const safeUrl = _sanitizeBookmarkUrl(node.url);
       a.href = safeUrl;
       a.setAttribute('role', 'treeitem');
       a.setAttribute('draggable', 'false');
@@ -1534,6 +1543,23 @@ const Bookmarks = (() => {
         _showNoBookmarks();
       }
     });
+  }
+
+  function _sanitizeBookmarkUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return '#';
+    const trimmed = rawUrl.trim();
+    if (/^(javascript|data|vbscript):/i.test(trimmed)) return '#';
+    try {
+      const parsed = new URL(trimmed);
+      if (['http:', 'https:', 'chrome:', 'edge:', 'brave:', 'about:', 'chrome-extension:'].includes(parsed.protocol)) {
+        return trimmed;
+      }
+    } catch (_) {
+      if (/^[a-z0-9-]+\.[a-z]{2,}/i.test(trimmed)) {
+        return 'https://' + trimmed;
+      }
+    }
+    return '#';
   }
 
   function _showNoBookmarks() {
